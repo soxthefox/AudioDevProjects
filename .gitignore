@@ -1,0 +1,30 @@
+# Build outputs (CMake / JUCE)
+build/
+Build/
+Builds/
+cmake-build-*/
+out/
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local env / secrets
+.env
+.env.local
+*.local
