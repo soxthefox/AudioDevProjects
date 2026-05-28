@@ -434,11 +434,13 @@ Plugin formats built: `VST3`, `Standalone` everywhere; `AU` only on macOS (`if(A
 
 The constraint: **manual ear-checking only happens on the M1 Mac.** Tests must verify correctness numerically, headless. Manual listening is the *final* gate, never the only gate.
 
-### 10.1 Layer 0 — Build gate
+**Automation split:** Layers 0–4 are fully automated (run via `ctest` on every push, both Windows and macOS CI). Layer 5 is the only manual layer — a human listening on the M1 Mac to artifacts produced by macOS CI.
+
+### 10.1 Layer 0 — Build gate (Automated)
 
 The plugin and the test executable are both `ctest` dependencies. If `Multivoicer` fails to compile, `ctest` exits non-zero. Runs on every platform's CI.
 
-### 10.2 Layer 1 — Pure-logic tests (no audio, no JUCE plugin)
+### 10.2 Layer 1 — Pure-logic tests (Automated)
 
 - `music_theory_test`:
   - `midiFromFreq(440) == 69`; round-trip with `freqFromMidi`.
@@ -464,7 +466,7 @@ The plugin and the test executable are both `ctest` dependencies. If `Multivoice
   - All 6 presets construct valid `Preset` structs (no NaNs, ranges respected).
   - Round-trip: load → APVTS state → re-read → matches.
 
-### 10.3 Layer 2 — Module tests (audio data, no plugin host)
+### 10.3 Layer 2 — Module tests (Automated)
 
 - `yin_detector_test`:
   - Sines at 80, 110, 220, 440, 880, 1760 Hz → detected within ±1 Hz, `voiced=true`, confidence > 0.8.
@@ -480,7 +482,7 @@ The plugin and the test executable are both `ctest` dependencies. If `Multivoice
   - Pan: -1 → only L; +1 → only R.
 - `voice_eq_test`: frequency response at known knob settings within tolerance.
 
-### 10.4 Layer 3 — Integration tests (full processBlock + golden audio)
+### 10.4 Layer 3 — Integration tests (Automated)
 
 `PluginProcessor` instantiated. `processBlock` driven with prepared audio + MIDI. Output compared to small WAVs in `Tests/golden/`.
 
@@ -492,14 +494,14 @@ The plugin and the test executable are both `ctest` dependencies. If `Multivoice
 
 A separate `generate_goldens` target re-renders the goldens. Regeneration is intentional and gated by manual Mac verification.
 
-### 10.5 Layer 4 — Host-API validation (pluginval)
+### 10.5 Layer 4 — Host-API validation / pluginval (Automated)
 
 Pluginval runs as a `ctest` step against the host's native plugin format:
 - Windows CI: VST3.
 - macOS CI: AU.
 - Catches state save/restore violations, processBlock contract violations, threading issues, edge-case sample rates / block sizes.
 
-### 10.6 Layer 5 — Manual on the M1 Mac
+### 10.6 Layer 5 — Manual on the M1 Mac (Manual — only manual layer)
 
 - Download `.vst3` + `.component` from the latest macOS CI artifact.
 - Drop into `~/Library/Audio/Plug-Ins/VST3/` and `~/Library/Audio/Plug-Ins/Components/`.
