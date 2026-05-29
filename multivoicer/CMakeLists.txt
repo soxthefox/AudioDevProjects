@@ -41,3 +41,5 @@ target_link_libraries(Multivoicer PRIVATE
     juce::juce_recommended_warning_flags)
 
 target_include_directories(Multivoicer PRIVATE Source)
+
+add_subdirectory(Tests)
