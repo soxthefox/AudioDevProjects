@@ -5,5 +5,5 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Phase 0 placeholder. JUCE / Signalsmith / Catch2 added in later tasks.
-message(STATUS "Multivoicer: Phase 0 scaffold")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(JUCE)
