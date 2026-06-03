@@ -57,3 +57,18 @@ TEST_CASE("Natural minor scale pitch class set is correct", "[music_theory]") {
     CHECK_FALSE(pcs.contains(4));
     CHECK_FALSE(pcs.contains(11));
 }
+
+#include <catch2/catch_approx.hpp>
+
+TEST_CASE("midiFromFreq / freqFromMidi roundtrip", "[music_theory]") {
+    CHECK(mv::midiFromFreq(440.0) == 69);              // A4
+    CHECK(mv::midiFromFreq(261.6256) == 60);           // C4
+    CHECK(mv::freqFromMidi(69.0) == Catch::Approx(440.0));
+    CHECK(mv::freqFromMidi(60.0) == Catch::Approx(261.6256).margin(0.01));
+}
+
+TEST_CASE("midiFromFreq rounds to nearest semitone", "[music_theory]") {
+    CHECK(mv::midiFromFreq(443.0) == 69);
+    CHECK(mv::midiFromFreq(450.0) == 69);
+    CHECK(mv::midiFromFreq(460.0) == 70);
+}
