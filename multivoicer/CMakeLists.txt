@@ -54,3 +54,21 @@ target_link_libraries(Multivoicer PRIVATE
 target_include_directories(Multivoicer PRIVATE Source)
 
 add_subdirectory(Tests)
+
+include(Pluginval)
+
+# Windows + Linux: validate VST3. macOS: validate AU + VST3.
+# On Windows, JUCE lays out VST3 as:
+#   <ARTEFACT_DIR>/VST3/Multivoicer.vst3/Contents/x86_64-win/Multivoicer.vst3
+# TARGET_FILE_DIR resolves to the x86_64-win directory; navigate up 3 levels
+# to reach the outer .vst3 bundle folder that pluginval expects.
+# On macOS, TARGET_BUNDLE_DIR works correctly for both VST3 and AU.
+if(WIN32)
+    multivoicer_add_pluginval_test(pluginval_vst3
+        "$<TARGET_FILE_DIR:Multivoicer_VST3>/../../..")
+elseif(APPLE)
+    multivoicer_add_pluginval_test(pluginval_au
+        "$<TARGET_BUNDLE_DIR:Multivoicer_AU>")
+    multivoicer_add_pluginval_test(pluginval_vst3
+        "$<TARGET_BUNDLE_DIR:Multivoicer_VST3>")
+endif()
