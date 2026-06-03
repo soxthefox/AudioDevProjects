@@ -11,13 +11,20 @@ include(Signalsmith)
 enable_testing()
 include(Catch2)
 
+# juce_add_plugin's FORMATS parameter is read literally at configure time —
+# it does NOT expand generator expressions. Build the list with plain if().
+set(MULTIVOICER_FORMATS VST3 Standalone)
+if(APPLE)
+    list(APPEND MULTIVOICER_FORMATS AU)
+endif()
+
 juce_add_plugin(Multivoicer
     PRODUCT_NAME "Multivoicer"
     COMPANY_NAME "AudioDevProjects"
     BUNDLE_ID "com.audiodevprojects.multivoicer"
     PLUGIN_MANUFACTURER_CODE Adev
     PLUGIN_CODE Mvcr
-    FORMATS VST3 Standalone $<$<PLATFORM_ID:Darwin>:AU>
+    FORMATS ${MULTIVOICER_FORMATS}
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
