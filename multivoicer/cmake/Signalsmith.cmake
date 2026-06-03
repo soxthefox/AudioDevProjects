@@ -10,7 +10,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(signalsmith_stretch)
 
-# Signalsmith doesn't ship its own CMake target; wrap it.
-add_library(signalsmith_stretch INTERFACE)
-target_include_directories(signalsmith_stretch INTERFACE ${signalsmith_stretch_SOURCE_DIR})
-add_library(signalsmith::stretch ALIAS signalsmith_stretch)
+# signalsmith-stretch's own CMakeLists creates the `signalsmith-stretch` target
+# (include subdir + signalsmith-linear dep).  Alias it to the name used in this project.
+add_library(signalsmith::stretch ALIAS signalsmith-stretch)

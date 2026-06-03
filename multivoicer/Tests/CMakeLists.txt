@@ -2,8 +2,10 @@ add_executable(MultivoicerTests
     smoke_test.cpp
     music_theory_test.cpp
     yin_detector_test.cpp
+    pitch_shifter_test.cpp
     ${CMAKE_SOURCE_DIR}/Source/Music/MusicTheory.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Dsp/YinPitchDetector.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Dsp/YinPitchDetector.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Dsp/SignalsmithPitchShifter.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
