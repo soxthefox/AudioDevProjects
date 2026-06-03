@@ -1,5 +1,6 @@
 #include "MusicTheory.h"
 #include <cmath>
+#include <cstdlib>
 
 namespace mv {
 
@@ -37,6 +38,21 @@ int scaleDegreeOf(int midiNote, Key key) {
     }
     return degree;
 }
-int targetForInterval(int, int, Key)      { return 0; }
+int targetForInterval(int inputMidi, int diatonicInterval, Key key) {
+    // 1. Snap off-key input to nearest in-key note.
+    int snapped = quantizeToKey(inputMidi, key);
+
+    // 2. Walk diatonicInterval steps through the scale.
+    int dir = (diatonicInterval >= 0) ? 1 : -1;
+    int steps = std::abs(diatonicInterval);
+    int current = snapped;
+    for (int i = 0; i < steps; ++i) {
+        // advance one semitone, then keep advancing until we land on an in-key note
+        do {
+            current += dir;
+        } while (scaleDegreeOf(current, key) < 0);
+    }
+    return current;
+}
 
 } // namespace mv

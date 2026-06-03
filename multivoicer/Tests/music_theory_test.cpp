@@ -111,3 +111,37 @@ TEST_CASE("quantizeToKey across octaves", "[music_theory]") {
     CHECK(mv::quantizeToKey(72, cMajor) == 72);  // C5
     CHECK(mv::quantizeToKey(85, cMajor) == 84);  // C#6 -> C6
 }
+
+TEST_CASE("targetForInterval in C major", "[music_theory]") {
+    mv::Key cMajor { mv::NoteName::C, &mv::Scales::Major };
+
+    // +2 scale-degree = "diatonic 3rd above"
+    CHECK(mv::targetForInterval(60, +2, cMajor) == 64);  // C4 -> E4 (major 3rd)
+    CHECK(mv::targetForInterval(62, +2, cMajor) == 65);  // D4 -> F4 (minor 3rd)
+    CHECK(mv::targetForInterval(64, +2, cMajor) == 67);  // E4 -> G4 (minor 3rd)
+    CHECK(mv::targetForInterval(65, +2, cMajor) == 69);  // F4 -> A4 (major 3rd)
+    CHECK(mv::targetForInterval(67, +2, cMajor) == 71);  // G4 -> B4 (major 3rd)
+
+    // +4 = 5th, +7 = octave (7 diatonic degrees in 7-note scale)
+    CHECK(mv::targetForInterval(60, +4, cMajor) == 67);  // C4 -> G4 (perfect 5th)
+    CHECK(mv::targetForInterval(60, +7, cMajor) == 72);  // C4 -> C5
+
+    // Negative interval = down
+    CHECK(mv::targetForInterval(60, -2, cMajor) == 57);  // C4 -> A3 (down a 3rd)
+    CHECK(mv::targetForInterval(60, -7, cMajor) == 48);  // C4 -> C3 (octave down)
+}
+
+TEST_CASE("targetForInterval in A natural minor", "[music_theory]") {
+    mv::Key aMinor { mv::NoteName::A, &mv::Scales::NaturalMinor };
+
+    // C in A-minor at scale-degree +2 -> E (in-key minor 3rd from C in A-natural-minor)
+    // A-minor scale notes: A B C D E F G
+    // From C, +2 degrees = E.
+    CHECK(mv::targetForInterval(60, +2, aMinor) == 64);  // C4 -> E4
+}
+
+TEST_CASE("targetForInterval snaps off-key input first", "[music_theory]") {
+    mv::Key cMajor { mv::NoteName::C, &mv::Scales::Major };
+    // C#4 (61) is off-key -> snap to C4 (60), then +2 -> E4 (64).
+    CHECK(mv::targetForInterval(61, +2, cMajor) == 64);
+}
