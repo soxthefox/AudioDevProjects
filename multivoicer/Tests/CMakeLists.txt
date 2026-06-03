@@ -12,7 +12,9 @@ add_executable(MultivoicerTests
     ${CMAKE_SOURCE_DIR}/Source/Dsp/VoiceEq.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/Voice.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/VoiceManager.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Voicing/MidiVoiceAllocator.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Voicing/MidiVoiceAllocator.cpp
+    mode_router_test.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Voicing/ModeRouter.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
