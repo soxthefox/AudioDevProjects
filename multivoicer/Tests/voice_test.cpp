@@ -74,3 +74,31 @@ TEST_CASE("Voice pan routes to expected channel", "[voice]") {
     CHECK(rms(outL.data() + total / 2, total / 2) > 0.05f);
     CHECK(rms(outR.data() + total / 2, total / 2) < 0.005f);
 }
+
+#include "Voicing/VoiceManager.h"
+
+TEST_CASE("VoiceManager renders only active voices", "[voice_manager]") {
+    mv::VoiceManager mgr;
+    // Use 8192 samples / 16 blocks of 512 to clear Signalsmith startup latency
+    const int blockSize = 512;
+    const int totalBlocks = 16;
+    const int total = blockSize * totalBlocks;
+    mgr.prepare(44100.0, blockSize);
+    mgr.setNumActiveVoices(2);
+
+    mv::VoiceParams p {};
+    p.enabled = true; p.attack = 1.0f; p.decay = 10.0f; p.sustain = 1.0f; p.release = 100.0f;
+    mgr.voice(0).setParams(p); mgr.voice(0).setTargetFreq(440.0); mgr.voice(0).noteOn();
+    mgr.voice(1).setParams(p); mgr.voice(1).setTargetFreq(550.0); mgr.voice(1).noteOn();
+
+    std::vector<float> in(total, 0.0f), outL(total, 0.0f), outR(total, 0.0f);
+    for (int i = 0; i < total; ++i) in[i] = 0.5f * std::sin(2.0 * M_PI * 440.0 * i / 44100.0);
+
+    for (int b = 0; b < totalBlocks; ++b) {
+        mgr.renderAdd(in.data() + b * blockSize, outL.data() + b * blockSize, outR.data() + b * blockSize, blockSize, 440.0);
+    }
+    // Measure energy from second half to skip startup latency
+    double e = 0.0;
+    for (int i = total / 2; i < total; ++i) e += outL[i] * outL[i];
+    CHECK(e > 0.5);
+}

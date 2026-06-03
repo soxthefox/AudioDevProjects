@@ -9,7 +9,8 @@ add_executable(MultivoicerTests
     ${CMAKE_SOURCE_DIR}/Source/Dsp/YinPitchDetector.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/SignalsmithPitchShifter.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/VoiceEq.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Voicing/Voice.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Voicing/Voice.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Voicing/VoiceManager.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
