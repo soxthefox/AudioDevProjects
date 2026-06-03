@@ -93,3 +93,21 @@ TEST_CASE("scaleDegreeOf for A natural minor", "[music_theory]") {
     CHECK(mv::scaleDegreeOf(72, aMinor) == 2);   // C5 -> 3rd
     CHECK(mv::scaleDegreeOf(70, aMinor) == -1);  // A#4 -> not in key
 }
+
+TEST_CASE("quantizeToKey snaps to nearest in-key note", "[music_theory]") {
+    mv::Key cMajor { mv::NoteName::C, &mv::Scales::Major };
+    CHECK(mv::quantizeToKey(60, cMajor) == 60);  // C4 -> C4 (in key)
+    CHECK(mv::quantizeToKey(61, cMajor) == 60);  // C#4 -> C4 (closer than D4)
+
+    // F#4 = 66: equidistant from F4(65) and G4(67). Tie -> prefer lower (deterministic).
+    CHECK(mv::quantizeToKey(66, cMajor) == 65);
+
+    // Bb4 = 70: 1 semi from A4(69), 1 semi from B4(71). Tie -> prefer lower.
+    CHECK(mv::quantizeToKey(70, cMajor) == 69);
+}
+
+TEST_CASE("quantizeToKey across octaves", "[music_theory]") {
+    mv::Key cMajor { mv::NoteName::C, &mv::Scales::Major };
+    CHECK(mv::quantizeToKey(72, cMajor) == 72);  // C5
+    CHECK(mv::quantizeToKey(85, cMajor) == 84);  // C#6 -> C6
+}

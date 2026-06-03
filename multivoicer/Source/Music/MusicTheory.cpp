@@ -13,7 +13,20 @@ double freqFromMidi(double midi) {
 }
 
 // Stubs for later tasks — keep linker happy until Tasks 9/10/11 implement them.
-int quantizeToKey(int, Key)               { return 0; }
+int quantizeToKey(int midiNote, Key key) {
+    // Already in key? Done.
+    if (scaleDegreeOf(midiNote, key) >= 0) return midiNote;
+
+    // Search outward (1, -1, 2, -2, ...). On tie at same |distance|,
+    // the lower note wins because we test -distance before +distance.
+    for (int distance = 1; distance <= 6; ++distance) {
+        int down = midiNote - distance;
+        if (scaleDegreeOf(down, key) >= 0) return down;
+        int up = midiNote + distance;
+        if (scaleDegreeOf(up, key) >= 0) return up;
+    }
+    return midiNote; // unreachable — every 12-semitone window has scale notes
+}
 int scaleDegreeOf(int midiNote, Key key) {
     int semitoneFromRoot = ((midiNote - static_cast<int>(key.root)) % 12 + 12) % 12;
     if (!key.scale->intervals.contains(semitoneFromRoot)) return -1;
