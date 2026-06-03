@@ -17,7 +17,13 @@ FetchContent_Declare(pluginval
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(pluginval)
 
-set(PLUGINVAL_EXECUTABLE "${pluginval_SOURCE_DIR}/${_pluginval_exe}" CACHE FILEPATH "")
+set(PLUGINVAL_EXECUTABLE "${pluginval_SOURCE_DIR}/${_pluginval_exe}" CACHE FILEPATH "" FORCE)
+
+# Zips extracted by FetchContent strip the unix execute bit.
+# Without this, ctest reports "Not Run" on macOS/Linux.
+if(NOT WIN32 AND EXISTS "${PLUGINVAL_EXECUTABLE}")
+    execute_process(COMMAND chmod +x "${PLUGINVAL_EXECUTABLE}")
+endif()
 
 function(multivoicer_add_pluginval_test target_name plugin_path)
     add_test(
