@@ -3,15 +3,14 @@ include(FetchContent)
 # pluginval ships pre-built binaries per OS. We download the right one.
 if(WIN32)
     set(_pluginval_url      "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip")
-    set(_pluginval_glob     "pluginval.exe")
-elseif(APPLE)
-    set(_pluginval_url      "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip")
-    # Recent pluginval releases ship the binary at pluginval.app/Contents/MacOS/Release/pluginval,
-    # older ones at pluginval.app/Contents/MacOS/pluginval. Glob to handle both.
-    set(_pluginval_glob     "pluginval.app/Contents/MacOS/*pluginval*")
+    set(_pluginval_filename "pluginval.exe")
 else()
-    set(_pluginval_url      "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip")
-    set(_pluginval_glob     "pluginval")
+    if(APPLE)
+        set(_pluginval_url  "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip")
+    else()
+        set(_pluginval_url  "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip")
+    endif()
+    set(_pluginval_filename "pluginval")
 endif()
 
 FetchContent_Declare(pluginval
@@ -19,9 +18,16 @@ FetchContent_Declare(pluginval
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(pluginval)
 
-# Find the actual binary (location varies between releases on macOS).
-file(GLOB_RECURSE _pluginval_candidates "${pluginval_SOURCE_DIR}/${_pluginval_glob}")
+# Recursively find the binary anywhere under the extracted tree.
+# Recent pluginval macOS releases place it at
+# pluginval.app/Contents/MacOS/Release/pluginval; older releases at
+# pluginval.app/Contents/MacOS/pluginval. file(GLOB_RECURSE) with a
+# pure filename pattern handles both.
+file(GLOB_RECURSE _pluginval_candidates "${pluginval_SOURCE_DIR}/${_pluginval_filename}")
 list(FILTER _pluginval_candidates EXCLUDE REGEX "\\.dSYM($|/)")
+# Prefer Release/pluginval over a debug build if both exist.
+list(SORT _pluginval_candidates)
+list(REVERSE _pluginval_candidates)
 list(LENGTH _pluginval_candidates _pluginval_count)
 if(_pluginval_count EQUAL 0)
     message(FATAL_ERROR "Pluginval binary not found under ${pluginval_SOURCE_DIR} (glob: ${_pluginval_glob})")
