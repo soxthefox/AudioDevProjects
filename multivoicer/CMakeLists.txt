@@ -28,7 +28,8 @@ target_sources(Multivoicer PRIVATE
     Source/Music/MusicTheory.cpp
     Source/Dsp/YinPitchDetector.cpp
     Source/Dsp/SignalsmithPitchShifter.cpp
-    Source/Dsp/VoiceEq.cpp)
+    Source/Dsp/VoiceEq.cpp
+    Source/Voicing/Voice.cpp)
 
 target_compile_definitions(Multivoicer PUBLIC
     JUCE_WEB_BROWSER=0

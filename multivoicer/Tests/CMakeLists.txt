@@ -4,10 +4,12 @@ add_executable(MultivoicerTests
     yin_detector_test.cpp
     pitch_shifter_test.cpp
     voice_eq_test.cpp
+    voice_test.cpp
     ${CMAKE_SOURCE_DIR}/Source/Music/MusicTheory.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/YinPitchDetector.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/SignalsmithPitchShifter.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Dsp/VoiceEq.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Dsp/VoiceEq.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Voicing/Voice.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
