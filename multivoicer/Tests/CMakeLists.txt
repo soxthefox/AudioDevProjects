@@ -1,5 +1,6 @@
 add_executable(MultivoicerTests
-    smoke_test.cpp)
+    smoke_test.cpp
+    music_theory_test.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
