@@ -1,33 +1,60 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <array>
+#include <vector>
+#include "../Dsp/YinPitchDetector.h"
+#include "../Voicing/VoiceManager.h"
+#include "../Voicing/MidiVoiceAllocator.h"
+#include "../Voicing/ModeRouter.h"
+#include "Parameters.h"
+
+namespace mv { class PresetBank; }
 
 class MultivoicerProcessor : public juce::AudioProcessor {
 public:
     MultivoicerProcessor();
-    ~MultivoicerProcessor() override = default;
+    ~MultivoicerProcessor() override;
 
     const juce::String getName() const override { return "Multivoicer"; }
-    void prepareToPlay(double, int) override {}
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
+    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
 
-    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
-    bool hasEditor() const override { return false; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }  // Task 25 will replace with real editor.
+    bool hasEditor() const override { return false; }  // Task 25 will flip to true.
 
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override { return 5.0; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return {}; }
+    int getNumPrograms() override { return 6; }
+    int getCurrentProgram() override;
+    void setCurrentProgram(int idx) override;
+    const juce::String getProgramName(int idx) override;
     void changeProgramName(int, const juce::String&) override {}
 
-    void getStateInformation(juce::MemoryBlock&) override {}
-    void setStateInformation(const void*, int) override {}
+    void getStateInformation(juce::MemoryBlock& dest) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+
+    juce::AudioProcessorValueTreeState apvts;
 
 private:
+    mv::YinPitchDetector    detector;
+    mv::VoiceManager        voices;
+    mv::MidiVoiceAllocator  allocator;
+    mv::ModeRouter          router;
+
+    std::array<bool, 4> wasGated { false, false, false, false };
+    mv::Mode             lastMode = mv::Mode::Preset;
+    bool                 lastMonoMidi = false;
+    int                  lastVoiceCount = 3;
+
+    std::vector<float>   monoIn, wetL, wetR, dryL, dryR;
+
+    void syncParamsToDsp();
+    void loadPreset(int idx);
+    int  currentPresetIndex = 0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MultivoicerProcessor)
 };
