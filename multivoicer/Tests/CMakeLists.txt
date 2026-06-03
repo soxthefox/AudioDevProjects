@@ -16,11 +16,17 @@ add_executable(MultivoicerTests
     mode_router_test.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/ModeRouter.cpp
     preset_bank_test.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Presets/PresetBank.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Presets/PresetBank.cpp
+    audio_io.cpp
+    integration_test.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/PluginProcessor.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/PluginEditor.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/Parameters.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
     juce::juce_audio_utils
+    juce::juce_audio_formats
     juce::juce_dsp
     signalsmith::stretch)
 
