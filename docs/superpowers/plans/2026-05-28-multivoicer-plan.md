@@ -476,7 +476,7 @@ Write `multivoicer/Tests/music_theory_test.cpp`:
 using namespace mv;
 
 TEST_CASE("PitchClassSet::contains", "[music_theory]") {
-    PitchClassSet major { 0b0000'1010'1101'0101 };
+    PitchClassSet major { 0b0000'1010'1011'0101 };
     CHECK(major.contains(0));   // root
     CHECK(major.contains(4));   // major 3rd
     CHECK(major.contains(7));   // 5th
@@ -596,16 +596,16 @@ Write `multivoicer/Source/Music/Scales.h`:
 
 namespace mv::Scales {
 
-// Major: 0 2 4 5 7 9 11 -> 0b0000'1010'1101'0101
+// Major: 0 2 4 5 7 9 11 -> bits 0,2,4,5,7,9,11 set -> 0b0000'1010'1011'0101
 inline constexpr ScaleDef Major {
     "Major",
-    PitchClassSet{ 0b0000'1010'1101'0101 }
+    PitchClassSet{ 0b0000'1010'1011'0101 }
 };
 
-// Natural Minor: 0 2 3 5 7 8 10 -> 0b0000'0101'1011'0101
+// Natural Minor: 0 2 3 5 7 8 10 -> bits 0,2,3,5,7,8,10 set -> 0b0000'0101'1010'1101
 inline constexpr ScaleDef NaturalMinor {
     "Natural Minor",
-    PitchClassSet{ 0b0000'0101'1011'0101 }
+    PitchClassSet{ 0b0000'0101'1010'1101 }
 };
 
 inline constexpr std::array<const ScaleDef*, 2> All { &Major, &NaturalMinor };
