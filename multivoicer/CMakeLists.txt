@@ -30,7 +30,8 @@ target_sources(Multivoicer PRIVATE
     Source/Dsp/SignalsmithPitchShifter.cpp
     Source/Dsp/VoiceEq.cpp
     Source/Voicing/Voice.cpp
-    Source/Voicing/VoiceManager.cpp)
+    Source/Voicing/VoiceManager.cpp
+    Source/Voicing/MidiVoiceAllocator.cpp)
 
 target_compile_definitions(Multivoicer PUBLIC
     JUCE_WEB_BROWSER=0
