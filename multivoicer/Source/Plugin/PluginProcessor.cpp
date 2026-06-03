@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
 #include "../Presets/PresetBank.h"
 #include "../Music/Scales.h"
 #include <algorithm>
@@ -196,6 +197,10 @@ void MultivoicerProcessor::setStateInformation(const void* data, int sizeInBytes
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
         if (xml->hasTagName(apvts.state.getType()))
             apvts.replaceState(juce::ValueTree::fromXml(*xml));
+}
+
+juce::AudioProcessorEditor* MultivoicerProcessor::createEditor() {
+    return new MultivoicerEditor(*this);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() {

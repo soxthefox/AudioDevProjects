@@ -25,6 +25,7 @@ juce_add_plugin(Multivoicer
 
 target_sources(Multivoicer PRIVATE
     Source/Plugin/PluginProcessor.cpp
+    Source/Plugin/PluginEditor.cpp
     Source/Plugin/Parameters.cpp
     Source/Music/MusicTheory.cpp
     Source/Dsp/YinPitchDetector.cpp

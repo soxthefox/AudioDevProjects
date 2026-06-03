@@ -21,8 +21,8 @@ public:
     void releaseResources() override {}
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override;
 
-    juce::AudioProcessorEditor* createEditor() override { return nullptr; }  // Task 25 will replace with real editor.
-    bool hasEditor() const override { return false; }  // Task 25 will flip to true.
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override { return true; }
 
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
