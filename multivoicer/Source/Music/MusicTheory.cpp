@@ -14,7 +14,16 @@ double freqFromMidi(double midi) {
 
 // Stubs for later tasks — keep linker happy until Tasks 9/10/11 implement them.
 int quantizeToKey(int, Key)               { return 0; }
-int scaleDegreeOf(int, Key)               { return -1; }
+int scaleDegreeOf(int midiNote, Key key) {
+    int semitoneFromRoot = ((midiNote - static_cast<int>(key.root)) % 12 + 12) % 12;
+    if (!key.scale->intervals.contains(semitoneFromRoot)) return -1;
+
+    int degree = 0;
+    for (int i = 0; i < semitoneFromRoot; ++i) {
+        if (key.scale->intervals.contains(i)) ++degree;
+    }
+    return degree;
+}
 int targetForInterval(int, int, Key)      { return 0; }
 
 } // namespace mv

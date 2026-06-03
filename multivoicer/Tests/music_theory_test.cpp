@@ -72,3 +72,24 @@ TEST_CASE("midiFromFreq rounds to nearest semitone", "[music_theory]") {
     CHECK(mv::midiFromFreq(450.0) == 69);
     CHECK(mv::midiFromFreq(460.0) == 70);
 }
+
+TEST_CASE("scaleDegreeOf for C major", "[music_theory]") {
+    mv::Key cMajor { mv::NoteName::C, &mv::Scales::Major };
+    CHECK(mv::scaleDegreeOf(60, cMajor) == 0);   // C4 -> root (degree 0)
+    CHECK(mv::scaleDegreeOf(62, cMajor) == 1);   // D4 -> 2nd
+    CHECK(mv::scaleDegreeOf(64, cMajor) == 2);   // E4 -> 3rd
+    CHECK(mv::scaleDegreeOf(65, cMajor) == 3);   // F4 -> 4th
+    CHECK(mv::scaleDegreeOf(67, cMajor) == 4);   // G4 -> 5th
+    CHECK(mv::scaleDegreeOf(69, cMajor) == 5);   // A4 -> 6th
+    CHECK(mv::scaleDegreeOf(71, cMajor) == 6);   // B4 -> 7th
+    CHECK(mv::scaleDegreeOf(61, cMajor) == -1);  // C#4 -> not in key
+    CHECK(mv::scaleDegreeOf(72, cMajor) == 0);   // C5 -> root (different octave, same degree)
+}
+
+TEST_CASE("scaleDegreeOf for A natural minor", "[music_theory]") {
+    mv::Key aMinor { mv::NoteName::A, &mv::Scales::NaturalMinor };
+    CHECK(mv::scaleDegreeOf(69, aMinor) == 0);   // A4 -> root
+    CHECK(mv::scaleDegreeOf(71, aMinor) == 1);   // B4 -> 2nd
+    CHECK(mv::scaleDegreeOf(72, aMinor) == 2);   // C5 -> 3rd
+    CHECK(mv::scaleDegreeOf(70, aMinor) == -1);  // A#4 -> not in key
+}
