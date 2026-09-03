@@ -34,6 +34,21 @@ target_sources(Multivoicer PRIVATE
     Source/Plugin/PluginProcessor.cpp
     Source/Plugin/PluginEditor.cpp
     Source/Plugin/Parameters.cpp
+    Source/Plugin/UI/MultivoicerLookAndFeel.cpp
+    Source/Plugin/UI/Controls/RadialKnob.cpp
+    Source/Plugin/UI/Controls/BipolarSlider.cpp
+    Source/Plugin/UI/Controls/ToggleSwitch.cpp
+    Source/Plugin/UI/Controls/SegmentedControl.cpp
+    Source/Plugin/UI/Controls/Stepper.cpp
+    Source/Plugin/UI/Controls/EnvelopeGraph.cpp
+    Source/Plugin/UI/Controls/EqCurveView.cpp
+    Source/Plugin/UI/Panels/WaveformVisualizer.cpp
+    Source/Plugin/UI/Panels/HeroHeader.cpp
+    Source/Plugin/UI/Panels/GlobalControlStrip.cpp
+    Source/Plugin/UI/Panels/TriggerRow.cpp
+    Source/Plugin/UI/Panels/MidiStatusRow.cpp
+    Source/Plugin/UI/Panels/VoiceCard.cpp
+    Source/Plugin/UI/Panels/StatusFooter.cpp
     Source/Music/MusicTheory.cpp
     Source/Dsp/YinPitchDetector.cpp
     Source/Dsp/SignalsmithPitchShifter.cpp

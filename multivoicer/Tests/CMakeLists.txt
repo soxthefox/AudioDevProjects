@@ -22,7 +22,22 @@ add_executable(MultivoicerTests
     integration_test.cpp
     ${CMAKE_SOURCE_DIR}/Source/Plugin/PluginProcessor.cpp
     ${CMAKE_SOURCE_DIR}/Source/Plugin/PluginEditor.cpp
-    ${CMAKE_SOURCE_DIR}/Source/Plugin/Parameters.cpp)
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/Parameters.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/MultivoicerLookAndFeel.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/RadialKnob.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/BipolarSlider.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/ToggleSwitch.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/SegmentedControl.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/Stepper.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/EnvelopeGraph.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Controls/EqCurveView.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/WaveformVisualizer.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/HeroHeader.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/GlobalControlStrip.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/TriggerRow.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/MidiStatusRow.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/VoiceCard.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Plugin/UI/Panels/StatusFooter.cpp)
 
 target_link_libraries(MultivoicerTests PRIVATE
     Catch2::Catch2WithMain
