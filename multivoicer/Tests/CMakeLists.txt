@@ -10,6 +10,7 @@ add_executable(MultivoicerTests
     ${CMAKE_SOURCE_DIR}/Source/Dsp/YinPitchDetector.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/SignalsmithPitchShifter.cpp
     ${CMAKE_SOURCE_DIR}/Source/Dsp/VoiceEq.cpp
+    ${CMAKE_SOURCE_DIR}/Source/Dsp/Envelope.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/Voice.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/VoiceManager.cpp
     ${CMAKE_SOURCE_DIR}/Source/Voicing/MidiVoiceAllocator.cpp

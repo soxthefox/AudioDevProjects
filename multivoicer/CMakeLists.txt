@@ -38,6 +38,7 @@ target_sources(Multivoicer PRIVATE
     Source/Dsp/YinPitchDetector.cpp
     Source/Dsp/SignalsmithPitchShifter.cpp
     Source/Dsp/VoiceEq.cpp
+    Source/Dsp/Envelope.cpp
     Source/Voicing/Voice.cpp
     Source/Voicing/VoiceManager.cpp
     Source/Voicing/MidiVoiceAllocator.cpp

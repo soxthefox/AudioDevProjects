@@ -21,7 +21,7 @@ float toDb(float linear) { return 20.0f * std::log10(linear + 1e-12f); }
 TEST_CASE("VoiceEq flat at 0 dB gains", "[voice_eq]") {
     mv::VoiceEq eq;
     eq.prepare(44100.0, 1024);
-    eq.setParams(0.0f, 0.0f, 1000.0f, 1.0f, 0.0f);
+    eq.setParams(0.0f, 200.0f, 0.0f, 1000.0f, 1.0f, 0.0f, 4000.0f);
     auto in = sine(1000.0, 44100.0, 4096);
     std::vector<float> out = in;
     eq.processInPlace(out.data(), (int)out.size());
@@ -33,7 +33,7 @@ TEST_CASE("VoiceEq flat at 0 dB gains", "[voice_eq]") {
 TEST_CASE("VoiceEq mid peak boosts at its center frequency", "[voice_eq]") {
     mv::VoiceEq eq;
     eq.prepare(44100.0, 1024);
-    eq.setParams(0.0f, +12.0f, 1000.0f, 1.0f, 0.0f);
+    eq.setParams(0.0f, 200.0f, +12.0f, 1000.0f, 1.0f, 0.0f, 4000.0f);
     auto in = sine(1000.0, 44100.0, 8192);
     std::vector<float> out = in;
     eq.processInPlace(out.data(), (int)out.size());
@@ -48,7 +48,7 @@ TEST_CASE("VoiceEq mid peak boosts at its center frequency", "[voice_eq]") {
 TEST_CASE("VoiceEq low shelf cuts below shelf frequency", "[voice_eq]") {
     mv::VoiceEq eq;
     eq.prepare(44100.0, 1024);
-    eq.setParams(-12.0f, 0.0f, 1000.0f, 1.0f, 0.0f);  // -12 dB low shelf
+    eq.setParams(-12.0f, 200.0f, 0.0f, 1000.0f, 1.0f, 0.0f, 4000.0f);  // -12 dB low shelf
     auto in = sine(80.0, 44100.0, 8192);
     std::vector<float> out = in;
     eq.processInPlace(out.data(), (int)out.size());

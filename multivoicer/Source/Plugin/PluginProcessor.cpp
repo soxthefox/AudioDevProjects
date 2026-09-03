@@ -54,14 +54,18 @@ void MultivoicerProcessor::syncParamsToDsp() {
         p.gainDb     = *apvts.getRawParameterValue(mv::Params::voiceParam("GainDb", idx));
         p.pan        = *apvts.getRawParameterValue(mv::Params::voiceParam("Pan", idx));
         p.attack     = *apvts.getRawParameterValue(mv::Params::voiceParam("AttackMs", idx));
+        p.attackLevel= *apvts.getRawParameterValue(mv::Params::voiceParam("AttackLevel", idx));
         p.decay      = *apvts.getRawParameterValue(mv::Params::voiceParam("DecayMs", idx));
         p.sustain    = *apvts.getRawParameterValue(mv::Params::voiceParam("Sustain", idx));
         p.release    = *apvts.getRawParameterValue(mv::Params::voiceParam("ReleaseMs", idx));
+        p.releaseLevel = *apvts.getRawParameterValue(mv::Params::voiceParam("ReleaseLevel", idx));
         p.lowShelfDb = *apvts.getRawParameterValue(mv::Params::voiceParam("EqLowDb", idx));
+        p.lowShelfHz = *apvts.getRawParameterValue(mv::Params::voiceParam("EqLowHz", idx));
         p.midPeakDb  = *apvts.getRawParameterValue(mv::Params::voiceParam("EqMidDb", idx));
         p.midFreqHz  = *apvts.getRawParameterValue(mv::Params::voiceParam("EqMidHz", idx));
         p.midQ       = *apvts.getRawParameterValue(mv::Params::voiceParam("EqMidQ", idx));
         p.highShelfDb= *apvts.getRawParameterValue(mv::Params::voiceParam("EqHighDb", idx));
+        p.highShelfHz= *apvts.getRawParameterValue(mv::Params::voiceParam("EqHighHz", idx));
         voices.voice(i).setParams(p);
     }
 }
@@ -125,6 +129,16 @@ void MultivoicerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
 
     voices.renderAdd(monoIn.data(), wetL.data(), wetR.data(), n, det.voiced ? det.freqHz : 110.0);
 
+    uiMeter.inputLevel.store(rms, std::memory_order_relaxed);
+    uiMeter.inputFreqHz.store((float) det.freqHz, std::memory_order_relaxed);
+    uiMeter.voiced.store(det.voiced, std::memory_order_relaxed);
+    auto midiSlots = allocator.snapshot();
+    for (int i = 0; i < 4; ++i) {
+        uiMeter.voiceLevel[(size_t) i].store(voices.voice(i).level(), std::memory_order_relaxed);
+        uiMeter.voiceMidiNote[(size_t) i].store(midiSlots[(size_t) i].active ? midiSlots[(size_t) i].midiNote : -1,
+                                                 std::memory_order_relaxed);
+    }
+
     const float mix = *apvts.getRawParameterValue(mv::Params::kDryWetMix);
     float* outL = buffer.getWritePointer(0);
     float* outR = nCh > 1 ? buffer.getWritePointer(1) : buffer.getWritePointer(0);
@@ -177,14 +191,18 @@ void MultivoicerProcessor::loadPreset(int idx) {
         setF(mv::Params::voiceParam("GainDb", idx1), v.gainDb);
         setF(mv::Params::voiceParam("Pan", idx1), v.pan);
         setF(mv::Params::voiceParam("AttackMs", idx1), v.attack);
+        setF(mv::Params::voiceParam("AttackLevel", idx1), v.attackLevel);
         setF(mv::Params::voiceParam("DecayMs", idx1), v.decay);
         setF(mv::Params::voiceParam("Sustain", idx1), v.sustain);
         setF(mv::Params::voiceParam("ReleaseMs", idx1), v.release);
+        setF(mv::Params::voiceParam("ReleaseLevel", idx1), v.releaseLevel);
         setF(mv::Params::voiceParam("EqLowDb", idx1), v.lowShelfDb);
+        setF(mv::Params::voiceParam("EqLowHz", idx1), v.lowShelfHz);
         setF(mv::Params::voiceParam("EqMidDb", idx1), v.midPeakDb);
         setF(mv::Params::voiceParam("EqMidHz", idx1), v.midFreqHz);
         setF(mv::Params::voiceParam("EqMidQ", idx1), v.midQ);
         setF(mv::Params::voiceParam("EqHighDb", idx1), v.highShelfDb);
+        setF(mv::Params::voiceParam("EqHighHz", idx1), v.highShelfHz);
     }
 }
 

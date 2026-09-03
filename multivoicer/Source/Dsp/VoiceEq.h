@@ -8,7 +8,8 @@ class VoiceEq {
 public:
     void prepare(double sampleRate, int maxBlockSize);
     void reset();
-    void setParams(float lowShelfDb, float midPeakDb, float midFreqHz, float midQ, float highShelfDb);
+    void setParams(float lowShelfDb, float lowShelfHz, float midPeakDb, float midFreqHz, float midQ,
+                   float highShelfDb, float highShelfHz);
     void processInPlace(float* mono, int numSamples);
 
 private:

@@ -53,14 +53,18 @@ static std::unique_ptr<juce::AudioProcessorParameterGroup> makeVoiceGroup(int id
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("GainDb", idx), 1),       "Gain (dB)", juce::NormalisableRange<float>(-24.0f, 6.0f), 0.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("Pan", idx), 1),          "Pan",       juce::NormalisableRange<float>(-1.0f, 1.0f), 0.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("AttackMs", idx), 1),     "Attack (ms)", juce::NormalisableRange<float>(0.0f, 2000.0f), 20.0f));
+    g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("AttackLevel", idx), 1),  "Attack Level", juce::NormalisableRange<float>(0.0f, 1.0f), 1.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("DecayMs", idx), 1),      "Decay (ms)",  juce::NormalisableRange<float>(0.0f, 2000.0f), 80.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("Sustain", idx), 1),      "Sustain",     juce::NormalisableRange<float>(0.0f, 1.0f),   0.8f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("ReleaseMs", idx), 1),    "Release (ms)",juce::NormalisableRange<float>(0.0f, 5000.0f), 300.0f));
+    g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("ReleaseLevel", idx), 1), "Release Level", juce::NormalisableRange<float>(0.0f, 1.0f), 0.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqLowDb", idx), 1),      "EQ Low (dB)", juce::NormalisableRange<float>(-18.0f, 18.0f), 0.0f));
+    g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqLowHz", idx), 1),      "EQ Low Freq (Hz)", juce::NormalisableRange<float>(40.0f, 800.0f, 0.0f, 0.3f), 200.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqMidDb", idx), 1),      "EQ Mid (dB)", juce::NormalisableRange<float>(-18.0f, 18.0f), 0.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqMidHz", idx), 1),      "EQ Mid (Hz)", juce::NormalisableRange<float>(200.0f, 8000.0f, 0.0f, 0.3f), 1000.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqMidQ", idx), 1),       "EQ Mid Q",    juce::NormalisableRange<float>(0.1f, 10.0f),  1.0f));
     g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqHighDb", idx), 1),     "EQ High (dB)",juce::NormalisableRange<float>(-18.0f, 18.0f), 0.0f));
+    g->addChild(std::make_unique<FloatP>(juce::ParameterID(voiceParam("EqHighHz", idx), 1),     "EQ High Freq (Hz)", juce::NormalisableRange<float>(1000.0f, 12000.0f, 0.0f, 0.3f), 4000.0f));
     return g;
 }
 

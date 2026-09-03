@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <array>
+#include <atomic>
 #include <vector>
 #include "../Dsp/YinPitchDetector.h"
 #include "../Voicing/VoiceManager.h"
@@ -38,6 +39,18 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+
+    // Read-only snapshot of runtime state the editor polls to draw live
+    // readouts (detected pitch, per-voice level, held MIDI notes). Audio
+    // thread writes, message thread reads — atomics only, no locks.
+    struct UiMeter {
+        std::atomic<float> inputLevel { 0.0f };
+        std::atomic<float> inputFreqHz { 0.0f };
+        std::atomic<bool>  voiced { false };
+        std::array<std::atomic<float>, 4> voiceLevel { { 0.0f, 0.0f, 0.0f, 0.0f } };
+        std::array<std::atomic<int>, 4>   voiceMidiNote { { -1, -1, -1, -1 } };
+    };
+    UiMeter uiMeter;
 
 private:
     mv::YinPitchDetector    detector;

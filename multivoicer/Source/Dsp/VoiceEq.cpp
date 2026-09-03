@@ -11,7 +11,7 @@ void VoiceEq::prepare(double sampleRate, int maxBlockSize) {
     lowShelf.prepare(spec);
     midPeak.prepare(spec);
     highShelf.prepare(spec);
-    setParams(0.0f, 0.0f, 1000.0f, 1.0f, 0.0f);
+    setParams(0.0f, 200.0f, 0.0f, 1000.0f, 1.0f, 0.0f, 4000.0f);
 }
 
 void VoiceEq::reset() {
@@ -20,11 +20,12 @@ void VoiceEq::reset() {
     highShelf.reset();
 }
 
-void VoiceEq::setParams(float lowDb, float midDb, float midHz, float midQ, float highDb) {
+void VoiceEq::setParams(float lowDb, float lowHz, float midDb, float midHz, float midQ,
+                         float highDb, float highHz) {
     using Coeffs = juce::dsp::IIR::Coefficients<float>;
-    *lowShelf.coefficients  = *Coeffs::makeLowShelf(sr,  200.0f, 0.707f, dbToGain(lowDb));
+    *lowShelf.coefficients  = *Coeffs::makeLowShelf(sr,  lowHz, 0.707f, dbToGain(lowDb));
     *midPeak.coefficients   = *Coeffs::makePeakFilter(sr, midHz, midQ, dbToGain(midDb));
-    *highShelf.coefficients = *Coeffs::makeHighShelf(sr, 4000.0f, 0.707f, dbToGain(highDb));
+    *highShelf.coefficients = *Coeffs::makeHighShelf(sr, highHz, 0.707f, dbToGain(highDb));
 }
 
 void VoiceEq::processInPlace(float* mono, int n) {
