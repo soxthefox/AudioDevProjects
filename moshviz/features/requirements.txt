@@ -1,0 +1,5 @@
+numpy>=2.0
+sounddevice>=0.5
+python-osc>=1.9
+soundfile>=0.12
+pytest>=8.0
