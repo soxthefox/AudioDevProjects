@@ -1,0 +1,104 @@
+cmake_minimum_required(VERSION 3.22)
+project(Multivoicer VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(JUCE)
+include(Signalsmith)
+enable_testing()
+include(Catch2)
+
+# juce_add_plugin's FORMATS parameter is read literally at configure time —
+# it does NOT expand generator expressions. Build the list with plain if().
+set(MULTIVOICER_FORMATS VST3 Standalone)
+if(APPLE)
+    list(APPEND MULTIVOICER_FORMATS AU)
+endif()
+
+juce_add_plugin(Multivoicer
+    PRODUCT_NAME "Multivoicer"
+    COMPANY_NAME "AudioDevProjects"
+    BUNDLE_ID "com.audiodevprojects.multivoicer"
+    PLUGIN_MANUFACTURER_CODE Adev
+    PLUGIN_CODE Mvcr
+    FORMATS ${MULTIVOICER_FORMATS}
+    IS_SYNTH FALSE
+    NEEDS_MIDI_INPUT TRUE
+    NEEDS_MIDI_OUTPUT FALSE
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE)
+
+target_sources(Multivoicer PRIVATE
+    Source/Plugin/PluginProcessor.cpp
+    Source/Plugin/PluginEditor.cpp
+    Source/Plugin/Parameters.cpp
+    Source/Plugin/UI/MultivoicerLookAndFeel.cpp
+    Source/Plugin/UI/Controls/RadialKnob.cpp
+    Source/Plugin/UI/Controls/BipolarSlider.cpp
+    Source/Plugin/UI/Controls/ToggleSwitch.cpp
+    Source/Plugin/UI/Controls/SegmentedControl.cpp
+    Source/Plugin/UI/Controls/Stepper.cpp
+    Source/Plugin/UI/Controls/EnvelopeGraph.cpp
+    Source/Plugin/UI/Controls/EqCurveView.cpp
+    Source/Plugin/UI/Panels/WaveformVisualizer.cpp
+    Source/Plugin/UI/Panels/HeroHeader.cpp
+    Source/Plugin/UI/Panels/GlobalControlStrip.cpp
+    Source/Plugin/UI/Panels/TriggerRow.cpp
+    Source/Plugin/UI/Panels/MidiStatusRow.cpp
+    Source/Plugin/UI/Panels/VoiceCard.cpp
+    Source/Plugin/UI/Panels/StatusFooter.cpp
+    Source/Music/MusicTheory.cpp
+    Source/Dsp/YinPitchDetector.cpp
+    Source/Dsp/SignalsmithPitchShifter.cpp
+    Source/Dsp/VoiceEq.cpp
+    Source/Dsp/Envelope.cpp
+    Source/Voicing/Voice.cpp
+    Source/Voicing/VoiceManager.cpp
+    Source/Voicing/MidiVoiceAllocator.cpp
+    Source/Voicing/ModeRouter.cpp
+    Source/Presets/PresetBank.cpp)
+
+target_compile_definitions(Multivoicer PUBLIC
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0)
+
+target_link_libraries(Multivoicer PRIVATE
+    juce::juce_audio_utils
+    juce::juce_dsp
+    signalsmith::stretch
+    PUBLIC
+    juce::juce_recommended_config_flags
+    juce::juce_recommended_lto_flags
+    juce::juce_recommended_warning_flags)
+
+target_include_directories(Multivoicer PRIVATE Source)
+
+add_subdirectory(Tests)
+
+include(Pluginval)
+
+# VST3 is validated everywhere. AU validation is NOT wired into ctest
+# because macOS requires AUs to be registered with the Component Manager
+# before pluginval can load them; doing that reliably on a headless CI
+# runner is fragile (involves copying the .component into the user
+# library and killing AudioComponentRegistrar to force a re-scan).
+# The AU bundle still builds on macOS CI and is uploaded as an artifact
+# for manual validation on the user's machine. The VST3 ctest already
+# exercises every contract our code touches (processBlock, state
+# save/restore, threading, sample-rate/block-size sweeps).
+#
+# On Windows, JUCE lays out VST3 as:
+#   <ARTEFACT_DIR>/VST3/Multivoicer.vst3/Contents/x86_64-win/Multivoicer.vst3
+# TARGET_FILE_DIR resolves to the x86_64-win directory; navigate up 3
+# levels to reach the outer .vst3 bundle that pluginval expects.
+# On macOS, TARGET_BUNDLE_DIR resolves directly to the bundle.
+if(WIN32)
+    multivoicer_add_pluginval_test(pluginval_vst3
+        "$<TARGET_FILE_DIR:Multivoicer_VST3>/../../..")
+elseif(APPLE)
+    multivoicer_add_pluginval_test(pluginval_vst3
+        "$<TARGET_BUNDLE_DIR:Multivoicer_VST3>")
+endif()
