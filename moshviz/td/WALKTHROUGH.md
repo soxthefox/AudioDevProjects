@@ -233,12 +233,12 @@ The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
    ```python
    [o.path for o in op('/project1').findChildren(name='seg_data')]
    ```
-   It prints the mask's full path. Send it to Claude.
+   ✔ It is `/project1/MediaPipe/seg_data`.
 4. **Turn off unused trackers.** On the MediaPipe node, find the **Face**,
    **Hand** and **Pose** settings and switch them **off**. Leave
    segmentation **on**. They cost CPU and GPU time and are not used.
 5. **Bring the mask out.** Tab → TOP → **Select**, renamed **`mask`**.
-   Set its **TOP** parameter to the path from step 3.
+   Set its **TOP** parameter to `/project1/MediaPipe/seg_data`.
    ✅ A white silhouette of you on black (soft, grey edges are fine).
 6. **Use it.** In `mosh`, replace input 2 (`mask_stub`) with `mask`: drag
    from `mask`'s output onto the connector that `mask_stub` uses (dropping
