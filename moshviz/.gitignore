@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+# TouchDesigner autosaves and backups
+td/Backup/
+*.toe.bak
+# Recordings and renders stay local; link the demo from the README
+recordings/
+renders/
+*.mov
+*.mp4
+# Third-party TouchDesigner plugins (large; see README for where to get them)
+td/vendor/
+# TouchDesigner numbered save backups (moshviz.1.toe, ...)
+td/*.[0-9]*.toe

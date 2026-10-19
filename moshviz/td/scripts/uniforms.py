@@ -1,0 +1,199 @@
+"""Shader uniform values for the moshviz GLSL TOPs: the single source of truth.
+
+The .toe is binary, so values typed into the Vectors page are invisible to
+version control. Keep them here instead and apply them from the Textport
+(Dialogs -> Textport and DATs):
+
+    exec(open(project.folder + '/scripts/uniforms.py').read())
+
+That sets every uniform below on its GLSL TOP, finding each row by its
+uniform name and adding a row if the name is missing. Values in
+SOURCE_OVERRIDES replace the defaults for the current input
+(MOSHVIZ_SOURCE, see wiring.py): dark stage footage needs more exposure
+than a lit webcam. Run it again after
+editing this file. Values are tuples of 1 to 4 numbers (x, y, z, w);
+strings are Python expressions (for example 'absTime.frame').
+"""
+
+NETWORK = '/project1'
+
+_CONTROL = "op('controls').par."
+
+UNIFORMS = {
+    # Input grading follows the controls panel (wiring.py creates it).
+    'prep': {
+        'uExposure': _CONTROL + 'Exposure',
+        'uBrightness': _CONTROL + 'Brightness',
+        'uContrast': _CONTROL + 'Contrast',
+        'uGamma': _CONTROL + 'Gamma',
+        'uSaturation': _CONTROL + 'Saturation',
+        'uSoften': _CONTROL + 'Soften',
+    },
+    # Output canvas follows the controls panel (toggles arrive as 0 / 1).
+    'frame': {
+        'uFitZoom': _CONTROL + 'Fitzoom',
+        'uMirrorFill': 'float(' + _CONTROL + 'Mirrorfill)',
+        'uMirrorFade': _CONTROL + 'Mirrorfade',
+        'uSymmetry': 'float(' + _CONTROL + 'Symmetry)',
+    },
+    'motion_mask': {
+        'uSpeedLowPx': (0.4,),
+        'uSpeedHighPx': (1.5,),
+    },
+    'motion': {
+        'uRegularisation': (0.001,),
+        'uIlluminationComp': (1.0,),
+    },
+    'mosh': {
+        'uDisplacement': (3.0,),
+        'uMaxMotionPx': (16.0,),
+        'uRefresh': (0.05,),
+        'uMaskFeather': (0.1,),
+        'uMaskInvert': (0.0,),  # image_segmentation/selfie_mask is white = person
+        'uThresholdSoftness': (0.05,),
+        'uReseedFrames': (0.0,),
+        'uFrame': 'absTime.frame',
+        'uRadial': (1.0,),
+        'uRadialCurve': (3.0,),
+        'uMotionDrive': _CONTROL + 'Moshmotion',
+        'uMoshSpeedLowPx': (0.3,),
+        'uMoshSpeedHighPx': (2.0,),
+        'uMotionGain': (1.5,),
+    },
+    'stylize': {
+        'uExposure': (1.0,),
+        'uGamma': (1.0,),
+        'uRelativeEdges': (0.0,),
+        'uContrastFloor': (0.05,),
+        'uEdgeScalePx': (1.5,),
+        'uEdgeGain': (4.0,),
+        'uEdgeThreshold': (0.2,),
+        'uStaticLevel': (0.2,),
+        'uMotionScalePx': (2.0,),
+        'uMotionFloorPx': (0.3,),
+        'uPointSpacingPx': (5.0,),
+        'uPointMix': (0.0,),
+        'uImageLevel': (0.0,),
+        'uSubjectColour': (1.0, 0.95, 0.9),
+        'uRoomColour': (0.2, 0.75, 1.0),
+        'uLineLevel': (1.0,),
+        'uLineTint': (0.0,),
+        'uLightLevel': (0.0,),
+        'uLightThreshold': (0.45,),
+        'uLightGlowPx': (8.0,),
+    },
+    'clones': {
+        'uRows': (5.0,),
+        'uColumns': (3.0,),
+        'uCloneSpacing': (0.3,),
+        'uRowDepth': (0.6,),
+        'uHorizon': (0.65,),
+        'uFog': (0.8,),
+        'uMaskFeather': (0.1,),
+        'uRowDelayFrames': (3.0,),
+        'uColumnDelayFrames': (1.0,),
+        'uHistoryFrames': "op('history_image').par.cachesize.eval()",
+        'uFrame': 'absTime.frame',
+        'uBlend': (1.0,),
+    },
+    'look': {
+        # The stylize pass already sets the palette, so the grade is neutral.
+        'uBrightness': (0.0,),
+        'uContrast': (1.0,),
+        'uSaturation': (1.0,),
+        'uDuotone': (0.0,),
+        'uShadowTint': (0.05, 0.0, 0.15),
+        'uHighlightTint': (1.0, 0.75, 0.6),
+        'uMotionGlow': (0.3,),
+        'uGlowAudio': (1.5,),
+        'uMotionScalePx': (3.0,),
+        'uMotionFloorPx': (0.3,),
+        'uGlowSmooth': (0.0,),
+    },
+}
+
+SOURCE_OVERRIDES = {
+    'movie': {
+        'stylize': {
+            # Measured: this footage averages 3 % brightness.
+            'uExposure': (3.0,),
+            'uGamma': (0.6,),
+            'uRelativeEdges': (1.0,),
+            # Higher floor: at 0.05, relative edges amplified the HEVC
+            # compression blocking in dark areas into a visible grid.
+            'uContrastFloor': (0.12,),
+            'uEdgeThreshold': (0.2,),
+            'uEdgeScalePx': (2.0,),
+            # People on stage move less than the lights; keep still
+            # outlines bright so they stay readable.
+            'uStaticLevel': (0.7,),
+            'uLineLevel': (0.1,),
+            'uImageLevel': (0.0,),    # no photographic overlay
+            # Stage lighting comes back as light only: the bright parts in
+            # their own colour, with a glow, and lines tinted by the scene.
+            'uLightLevel': (1.2,),
+            'uLineTint': (0.3,),
+        },
+        'mosh': {
+            # Heal moshed blocks faster so people's outlines re-form
+            # instead of dissolving into trails.
+            'uRefresh': (0.15,),
+        },
+        # The motion field's colours lead; outlines sit underneath. Dark
+        # footage moves less in luma terms, so the glow reacts to smaller
+        # speeds (full colour at 1.5 px/frame instead of 3).
+        'look': {
+            'uMotionGlow': (1.0,),
+            'uGlowAudio': (2.0,),
+            'uMotionScalePx': (1.5,),
+            'uMotionFloorPx': (0.15,),
+            'uGlowSmooth': (1.0,),   # blend between blocks instead of flat tiles
+        },
+    },
+}
+
+COMPONENTS = 'xyzw'
+
+
+def _row_index(glsl, name):
+    """Index of the Vectors row holding `name`, adding a row if there is none."""
+    vectors = glsl.seq.vec
+    for i in range(vectors.numBlocks):
+        if glsl.par['vec{}name'.format(i)].eval() == name:
+            return i
+    vectors.numBlocks += 1
+    i = vectors.numBlocks - 1
+    glsl.par['vec{}name'.format(i)].val = name
+    return i
+
+
+def _with_overrides(uniforms, source):
+    merged = {name: dict(values) for name, values in uniforms.items()}
+    for op_name, values in SOURCE_OVERRIDES.get(source, {}).items():
+        merged.setdefault(op_name, {}).update(values)
+    return merged
+
+
+def apply(network=NETWORK, uniforms=UNIFORMS):
+    source = globals().get('MOSHVIZ_SOURCE', 'camera')
+    print('uniforms: source {}'.format(source))
+    for op_name, values in _with_overrides(uniforms, source).items():
+        glsl = op(network + '/' + op_name)
+        if glsl is None:
+            print('uniforms: no operator {}/{}, skipped'.format(network, op_name))
+            continue
+        for name, value in values.items():
+            i = _row_index(glsl, name)
+            if isinstance(value, str):
+                par = glsl.par['vec{}valuex'.format(i)]
+                par.expr = value
+                par.mode = ParMode.EXPRESSION
+                continue
+            for component, number in zip(COMPONENTS, value):
+                par = glsl.par['vec{}value{}'.format(i, component)]
+                par.mode = ParMode.CONSTANT
+                par.val = number
+        print('uniforms: set {} on {}'.format(len(values), glsl.path))
+
+
+apply()
