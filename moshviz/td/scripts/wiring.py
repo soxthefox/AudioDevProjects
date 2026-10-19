@@ -101,24 +101,25 @@ CREATE = {
     'prep_pixel': 'textDAT',    # holds prep.glsl, synced to the file
 }
 
-# Custom parameters on `controls`: name -> (kind, label, default).
+# Custom parameters on `controls`: name -> (kind, label, default, slider range).
 # TouchDesigner requires custom parameter names to start with a capital
-# letter followed by lowercase letters or digits.
+# letter followed by lowercase letters or digits. The slider range only sets
+# the slider's travel (default 0..1); typed values outside it still work.
 CONTROLS = {
-    'Clones': ('toggle', 'Clones', False),
-    'Clipstart': ('float', 'Clip start (s)', 0.0),
-    'Clipend': ('float', 'Clip end (s, 0 = end)', 0.0),
-    'Zoom': ('float', 'Zoom', 1.0),
-    'Offsetx': ('float', 'Offset X', 0.0),
-    'Offsety': ('float', 'Offset Y', 0.0),
-    'Rotate': ('float', 'Rotate (deg)', 0.0),
+    'Clones': ('toggle', 'Clones', False, None),
+    'Clipstart': ('float', 'Clip start (s)', 0.0, (0.0, 30.0)),
+    'Clipend': ('float', 'Clip end (s, 0 = end)', 0.0, (0.0, 30.0)),
+    'Zoom': ('float', 'Zoom', 1.0, (0.25, 4.0)),
+    'Offsetx': ('float', 'Offset X', 0.0, (-1.0, 1.0)),
+    'Offsety': ('float', 'Offset Y', 0.0, (-1.0, 1.0)),
+    'Rotate': ('float', 'Rotate (deg)', 0.0, (-180.0, 180.0)),
     # Input grading (prep pass): applied before motion and outline analysis.
-    'Exposure': ('float', 'Input exposure', 1.0),
-    'Brightness': ('float', 'Input brightness', 0.0),
-    'Contrast': ('float', 'Input contrast', 1.0),
-    'Gamma': ('float', 'Input gamma', 1.0),
-    'Saturation': ('float', 'Input saturation', 1.0),
-    'Soften': ('float', 'Input soften (denoise)', 0.0),
+    'Exposure': ('float', 'Input exposure', 1.0, (0.0, 8.0)),
+    'Brightness': ('float', 'Input brightness', 0.0, (-0.5, 0.5)),
+    'Contrast': ('float', 'Input contrast', 1.0, (0.0, 3.0)),
+    'Gamma': ('float', 'Input gamma', 1.0, (0.2, 4.0)),
+    'Saturation': ('float', 'Input saturation', 1.0, (0.0, 2.0)),
+    'Soften': ('float', 'Input soften (denoise)', 0.0, (0.0, 1.0)),
 }
 
 # Channels of clip_timing, sent to the service as OSC addresses.
@@ -305,16 +306,18 @@ def _check_controls(network):
     page = next((p for p in controls.customPages if p.name == 'Controls'), None)
     if page is None:
         page = controls.appendCustomPage('Controls')
-    for name, (kind, label, default) in CONTROLS.items():
-        if getattr(controls.par, name, None) is not None:
-            continue
-        print('wiring: controls gets {}'.format(label))
-        if kind == 'toggle':
-            par = page.appendToggle(name, label=label)[0]
-        else:
-            par = page.appendFloat(name, label=label)[0]
-        par.default = default
-        par.val = default
+    for name, (kind, label, default, slider) in CONTROLS.items():
+        par = getattr(controls.par, name, None)
+        if par is None:
+            print('wiring: controls gets {}'.format(label))
+            if kind == 'toggle':
+                par = page.appendToggle(name, label=label)[0]
+            else:
+                par = page.appendFloat(name, label=label)[0]
+            par.default = default
+            par.val = default
+        if slider is not None and (par.normMin, par.normMax) != slider:
+            par.normMin, par.normMax = slider   # slider travel only, not the value
     if USE_MOVIE and controls.par.Clones.eval():
         print('wiring: note: clones need a performer mask; with a movie there is none, so they show nothing')
 
