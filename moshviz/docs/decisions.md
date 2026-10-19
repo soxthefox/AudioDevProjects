@@ -326,8 +326,19 @@ white stage lights flashed. Two causes:
   `uGamma`), with per-source values: movie footage uses exposure 2,
   gamma 0.6 and a lower threshold (`SOURCE_OVERRIDES` in
   `scripts/uniforms.py`).
-- The motion block size follows the source resolution (`BLOCK_PX`), so
-  1920 × 1080 footage gets the same 8 px blocks as the camera, not 12 px.
+- The motion block size follows the source resolution (`BLOCK_PX`).
+  (TouchDesigner's Non-Commercial licence caps TOPs at 1280 × 1280, so the
+  1920 × 1080 clip is processed at 1280 × 720, which is also why it looks
+  softer when shown large.)
+
+**Follow-up: relative edges.** Measured brightness through the chain:
+the clip averages 0.031, but the outlines averaged 0.0019, so almost no
+edges passed even with exposure lifted. Fixed gains are a poor fit for
+stage light (spotlights next to near-black), so `stylize.glsl` can divide
+the gradient by the local mean brightness (Weber contrast) plus a noise
+floor (`uRelativeEdges`, `uContrastFloor`). Edges in shadows then count as
+much as edges under a spotlight. Movie mode uses relative edges and shows
+the lifted footage faintly under the outlines (`uImageLevel` 0.25).
 
 ---
 

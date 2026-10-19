@@ -37,6 +37,8 @@ UNIFORMS = {
     'stylize': {
         'uExposure': (1.0,),
         'uGamma': (1.0,),
+        'uRelativeEdges': (0.0,),
+        'uContrastFloor': (0.05,),
         'uEdgeScalePx': (1.5,),
         'uEdgeGain': (4.0,),
         'uEdgeThreshold': (0.2,),
@@ -81,9 +83,13 @@ UNIFORMS = {
 SOURCE_OVERRIDES = {
     'movie': {
         'stylize': {
-            'uExposure': (2.0,),
+            # Measured: this footage averages 3 % brightness.
+            'uExposure': (3.0,),
             'uGamma': (0.6,),
-            'uEdgeThreshold': (0.15,),
+            'uRelativeEdges': (1.0,),
+            'uContrastFloor': (0.05,),
+            'uEdgeThreshold': (0.25,),
+            'uImageLevel': (0.25,),
         },
     },
 }

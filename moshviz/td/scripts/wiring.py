@@ -52,7 +52,7 @@ MOVIE_FPS = 23.879   # IMG_1422_2.MOV average frame rate, read with PyAV
 # footage, which made the mosh and glow visibly chunkier.
 BLOCK_PX = 8
 CAMERA_SIZE = (1280, 720)
-MOVIE_SIZE = (1920, 1080)   # IMG_1422_2.MOV
+MOVIE_SIZE = (1280, 720)   # IMG_1422_2.MOV is 1920 x 1080, but the Non-Commercial licence caps TOPs at 1280
 
 HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
