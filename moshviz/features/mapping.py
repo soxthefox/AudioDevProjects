@@ -42,9 +42,9 @@ class MappingParams:
     """Gaussian blur sigma across strips at polyphony = 1."""
     onset_boost: float = 0.5
     onset_curve: float = 2.0
-    threshold: float = 0.4
+    threshold: float = 0.3
     """Band levels (0..1) below this are treated as 0."""
-    gate_db: float = -50.0
+    gate_db: float = -40.0
     """Frame RMS (dBFS) at which strips start to open."""
     gate_knee_db: float = 10.0
     """dB above gate_db at which strips are fully open."""
