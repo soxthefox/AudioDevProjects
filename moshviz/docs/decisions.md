@@ -162,6 +162,30 @@ will come from tuning with the guitar (milestone 5).
 
 ---
 
+## D9. Mosh weighting: persistent per-block selection, not per-pixel blending (decided)
+
+**First version.** Each frame, output = mix(live, stale, amount). This
+looked almost unmoshed on the first live test: with amount 0.5, half the
+trail is replaced by the live frame every frame, so a smear decays as
+0.5^n and is gone within 3 to 4 frames (about 0.1 s). That held even
+though the row amounts from the mic were 0.4 to 0.8 (measured offline
+from 4 s of mic input).
+
+**Decision.** Each macroblock gets a fixed random threshold. A block
+shows the stale, motion-warped image *fully* while its strip's amount is
+above its threshold, and heals only through the small `uRefresh` term.
+The amount therefore sets the *fraction of blocks* in a strip that mosh,
+and those blocks stay moshed while the music holds. This is closer to a
+codec, where a macroblock is either predicted from a stale reference or
+refreshed. A block snapping back when the amount drops is the visual
+equivalent of a keyframe arriving.
+
+**Parameters.** `uThresholdSoftness` (a hard or soft switch per block)
+and `uReseedFrames` (how often the set of moshing blocks reshuffles)
+replace `uBlockDropout`.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

@@ -44,7 +44,8 @@ mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 | `uMaxMotionPx` | 16 | Per-frame displacement clamp |
 | `uRefresh` | 0.02 | How quickly moshed pixels heal toward the live image |
 | `uMaskFeather` | 0.1 | Softness of the subject edge |
-| `uBlockDropout` | 0.0 | 0 = smooth blend, 1 = blocks drop in and out |
+| `uThresholdSoftness` | 0.05 | 0 = blocks switch hard on/off; larger = they fade |
+| `uReseedFrames` | 0 | Frames between reshuffles of which blocks mosh (0 = never) |
 | `uFrame` | `absTime.frame` (expression) | Reseeds the dropout every frame |
 
 To tune the audio mapping live, send OSC from TouchDesigner (OSC Out CHOP

@@ -20,8 +20,9 @@ uniform float uDisplacement;  // gain on motion vectors (1 = codec-like; > 1 exa
 uniform float uMaxMotionPx;   // clamp on per-frame displacement, in pixels
 uniform float uRefresh;       // 0..1 pull of moshed pixels toward the live frame each frame
 uniform float uMaskFeather;   // half-width of the mask edge ramp, in mask units (e.g. 0.1)
-uniform float uBlockDropout;  // 0 = smooth blend by amount, 1 = each block is all-or-nothing
-uniform float uFrame;         // set to absTime.frame; reseeds the block dropout every frame
+uniform float uThresholdSoftness; // 0 = hard on/off blocks; larger = blocks fade in and out (e.g. 0.05)
+uniform float uReseedFrames;  // frames between reshuffles of which blocks mosh; 0 = never reshuffle
+uniform float uFrame;         // set to absTime.frame
 
 const int CURRENT = 0;
 const int FEEDBACK = 1;
@@ -56,23 +57,31 @@ vec2 blockMotionPx(ivec2 block)
     return len > uMaxMotionPx ? v * (uMaxMotionPx / len) : v;
 }
 
-// Integer hash (PCG-style) giving a uniform value in [0, 1) per block per frame.
-float blockRandom(ivec2 block, float frame)
+// Integer hash (PCG-style) giving a uniform value in [0, 1) per block and seed.
+float blockRandom(ivec2 block, float seed)
 {
-    uint h = uint(block.x) * 1973u + uint(block.y) * 9277u + uint(frame) * 26699u;
+    uint h = uint(block.x) * 1973u + uint(block.y) * 9277u + uint(seed) * 26699u;
     h = h * 747796405u + 2891336453u;
     h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
     h = (h >> 22u) ^ h;
     return float(h) / 4294967296.0;
 }
 
-// How much of the moshed (stale) image to show. With dropout, a block is
-// moshed with probability `amount`, like a codec randomly losing keyframe
-// refreshes per macroblock; without, it blends smoothly by `amount`.
+// Which blocks show the stale image. Each block has a fixed random threshold;
+// a block moshes fully while its strip's amount is above that threshold, so
+// amount 0.5 means about half the blocks in the strip mosh, and they stay
+// moshed frame after frame, like macroblocks that keep being predicted from
+// a stale reference instead of being refreshed.
+//
+// Blending every pixel by `amount` instead (the first version) replaced
+// part of the trail with the live frame on every frame, so smears faded
+// within a few frames and the effect was barely visible.
 float moshWeight(float amount, ivec2 block)
 {
-    float allOrNothing = step(blockRandom(block, uFrame), amount);
-    return mix(amount, allOrNothing, uBlockDropout);
+    float seed = uReseedFrames > 0.0 ? floor(uFrame / uReseedFrames) : 0.0;
+    float threshold = blockRandom(block, seed);
+    float halfWidth = max(uThresholdSoftness, 1e-4) * 0.5;
+    return smoothstep(threshold - halfWidth, threshold + halfWidth, amount);
 }
 
 void main()

@@ -149,7 +149,8 @@ It stands in for you until the Kinect works.
    | `uMaxMotionPx` | 16 |
    | `uRefresh` | 0.02 |
    | `uMaskFeather` | 0.1 |
-   | `uBlockDropout` | 0 |
+   | `uThresholdSoftness` | 0.05 |
+   | `uReseedFrames` | 0 |
    | `uFrame` | `absTime.frame` (the field should show the frame number counting up) |
 
 6. Tab → TOP → **Null**. Connect `mosh` → Null and rename it **`out`**.
