@@ -365,7 +365,7 @@ has everything in one place:
 | Control | What it does |
 |---|---|
 | **Clones** | on/off switch for the clones (they need a performer mask, so with a movie they show nothing) |
-| **Clip start (s)**, **Clip end (s, 0 = end)** | the part of the clip that loops; picture and sound together |
+| **Clip start (s)**, **Clip end (s, 0 = end)** | the part of the clip that loops (with the audio clock, picture and sound together) |
 | **Zoom** | 1 = original size, 1.5 = zoomed in |
 | **Offset X**, **Offset Y** | moves the footage, as a fraction of the frame (0.1 = 10 %) |
 | **Rotate (deg)** | rotates the footage |

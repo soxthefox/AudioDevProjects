@@ -7,9 +7,10 @@ Apply from the Textport (Dialogs -> Textport and DATs):
 Movie clock (movie mode), MOSHVIZ_CLOCK:
   'audio'  (default) the movie follows the service's playback position, so
            the clip's own sound drives the visuals (service --file X --play).
-  'free'   the movie plays and loops by itself, silently; the visuals react
-           to whatever the service listens to (a mic, or computer audio via
-           a loopback device such as BlackHole). Clip start/end do not apply.
+  'free'   the movie loops by itself on TouchDesigner's wall clock, silently;
+           the visuals react to whatever the service listens to (a mic, or
+           computer audio via a loopback device such as BlackHole). Clip
+           start/end on `controls` set the looped section.
 
     MOSHVIZ_CLOCK = 'free'; exec(open(project.folder + '/scripts/wiring.py').read())
 
@@ -62,6 +63,7 @@ MOVIE_FILE = '../recordings/IMG_1423_prores.mov'
 # and a 60 fps project).
 CAMERA_FPS = 30.0
 MOVIE_FPS = 30.0   # tools/intra_frame.py writes constant 30 fps (the phone clip is variable rate)
+MOVIE_DURATION_S = 24.97   # IMG_1423_prores.mov, as printed by tools/intra_frame.py
 
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
@@ -149,12 +151,11 @@ HISTORY_SETTINGS = {
 SETTINGS = {
     'history_image': HISTORY_SETTINGS,
     'history_mask': HISTORY_SETTINGS,
-    # Free clock: the movie plays and loops by itself; 'index' set back to a
-    # constant so the audio-clock expression is removed. Audio clock: the
-    # movie shows the frame at the playback position (see EXPRESSIONS).
-    'movie': ({'file': MOVIE_FILE, 'playmode': 'sequential', 'play': True, 'index': 0}
-              if FREE_CLOCK else
-              {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'}),
+    # The movie always shows the frame at a time in seconds (see EXPRESSIONS):
+    # the audio playback position, or the wall clock looped over the clip.
+    # (Sequential play mode advances one frame per cook, and this network
+    # can cook the movie more than once per frame, so it played too fast.)
+    'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
     'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},
     'motion': {'outputresolution': 'custom',
@@ -170,10 +171,15 @@ SETTINGS = {
 _TIME = "op('oscin1')['moshviz/time']"
 HISTORY_EXPRESSIONS = {'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAMES)}
 _CONTROL = "op('controls').par."
+# Wall clock looped over [Clip start, Clip end) (end 0 = clip length); the
+# loop length is kept above one frame so it never divides by zero.
+_FREE_INDEX = ("{c}Clipstart + absTime.seconds % max(({c}Clipend or {d}) - {c}Clipstart, {f})"
+               .format(c="op('controls').par.", d=MOVIE_DURATION_S, f=1.0 / MOVIE_FPS))
 EXPRESSIONS = {
     'history_image': HISTORY_EXPRESSIONS,
     'history_mask': HISTORY_EXPRESSIONS,
-    'movie': {} if FREE_CLOCK else {'index': '{0}.eval() if {0} is not None else 0'.format(_TIME)},
+    'movie': {'index': (_FREE_INDEX if FREE_CLOCK else
+                        '{0}.eval() if {0} is not None else 0'.format(_TIME))},
     'clip_timing': {'const0value': _CONTROL + 'Clipstart',
                     'const1value': _CONTROL + 'Clipend'},
     'clip_xform': {'sx': _CONTROL + 'Zoom', 'sy': _CONTROL + 'Zoom',
