@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from mapping import MappingParams, gaussian_spread, row_amounts
+from mapping import MappingParams, apply_threshold, gaussian_spread, level_gate, row_amounts
 
 N = 24
 
@@ -56,3 +56,21 @@ def test_set_param_by_name():
     assert params.chord_gain == 0.25
     with pytest.raises(KeyError):
         params.set("nope", 1.0)
+
+
+def test_gate_closes_below_gate_level():
+    params = MappingParams(gate_db=-50.0, gate_knee_db=10.0)
+    bands = np.ones(N)
+    assert row_amounts(bands, 1.0, 0.0, params, level_db=-60.0).max() == 0.0
+    assert row_amounts(bands, 1.0, 0.0, params, level_db=-20.0).max() > 0.5
+
+
+def test_level_gate_knee_is_linear():
+    assert level_gate(-50.0, -50.0, 10.0) == 0.0
+    assert level_gate(-45.0, -50.0, 10.0) == pytest.approx(0.5)
+    assert level_gate(-30.0, -50.0, 10.0) == 1.0
+
+
+def test_threshold_zeroes_weak_bands_and_rescales():
+    out = apply_threshold(np.array([0.2, 0.4, 0.7, 1.0]), 0.4)
+    np.testing.assert_allclose(out, [0.0, 0.0, 0.5, 1.0])

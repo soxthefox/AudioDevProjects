@@ -35,6 +35,8 @@ from mapping import MappingParams, row_amounts
 log = logging.getLogger("moshviz")
 
 ADDRESS_PREFIX = "/moshviz"
+STATUS_INTERVAL_S = 2.0
+"""How often the worker logs live levels, for tuning the gate and threshold."""
 QUEUE_MAX_BLOCKS = 64
 """About 340 ms of audio at the default hop. If the worker falls this far behind, drop blocks."""
 
@@ -91,11 +93,17 @@ def run_worker(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfig,
                params: ParamServer, client: udp_client.UDPClient) -> None:
     """Consume audio blocks, compute features, send OSC. Returns on a None block."""
     extractor = FeatureExtractor(config)
+    hops_per_status = max(1, round(STATUS_INTERVAL_S / config.hop_s))
     seq = 0
     while (block := blocks.get()) is not None:
         features = extractor.process(block)
-        rows = row_amounts(features.bands, features.polyphony, features.onset, params.snapshot())
+        rows = row_amounts(features.bands, features.polyphony, features.onset,
+                           params.snapshot(), level_db=features.level_db)
         client.send(build_bundle(features, rows, seq))
+        if seq % hops_per_status == 0:
+            log.info("level %6.1f dBFS  polyphony %.2f  onset %.2f  rows mean %.2f max %.2f",
+                     features.level_db, features.polyphony, features.onset,
+                     float(rows.mean()), float(rows.max()))
         seq += 1
 
 
