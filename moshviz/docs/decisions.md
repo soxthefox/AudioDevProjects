@@ -245,8 +245,18 @@ real dance floor with many people, the mask already contains many
 figures and clones would only clutter the frame.
 
 Clones copy the *finished* image, so each clone carries the same
-outlines and glow as the performer. Future option: time-delayed clones
-(a canon), using a Cache TOP of past frames.
+outlines and glow as the performer.
+
+**Revision: a receding crowd with a time ripple.** Clones are laid out in
+rows with pinhole perspective: row r at depth z = 1 + r * uRowDepth is
+scaled by 1/z towards a vanishing point, and deeper rows hold more
+figures, so the crowd widens with distance. Brightness falls off as
+exp(-fog * (z - 1)). Each row shows the performer a few frames later than
+the row in front, a canon effect. Past frames come from two Texture 3D TOPs
+(image and mask, so silhouettes stay matched) used as 2D texture arrays.
+They are ring buffers, and their write slot is set explicitly to
+frame mod N, so the shader can compute which slice holds the frame from d
+frames ago without knowing TouchDesigner's internal write index.
 
 ---
 

@@ -44,11 +44,17 @@ UNIFORMS = {
         'uRoomColour': (0.2, 0.75, 1.0),
     },
     'clones': {
-        'uCloneCount': (4.0,),
-        'uCloneSpacing': (0.28,),
-        'uCloneScale': (0.85,),
-        'uCloneFade': (0.7,),
+        'uRows': (5.0,),
+        'uColumns': (3.0,),
+        'uCloneSpacing': (0.3,),
+        'uRowDepth': (0.6,),
+        'uHorizon': (0.65,),
+        'uFog': (0.8,),
         'uMaskFeather': (0.1,),
+        'uRowDelayFrames': (3.0,),
+        'uColumnDelayFrames': (1.0,),
+        'uHistoryFrames': "op('history_image').par.cachesize.eval()",
+        'uFrame': 'absTime.frame',
     },
     'look': {
         # The stylize pass already sets the palette, so the grade is neutral.

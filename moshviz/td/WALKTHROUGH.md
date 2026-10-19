@@ -292,14 +292,17 @@ gives thicker lines; `uImageLevel` 0.1 brings back a faint photo.
 
 ## Step 10: Clones (optional, plug in / plug out)
 
-Copies of you on alternating sides. Each one further out is smaller and
-dimmer, and they all move exactly as you do. Meant for a single performer;
-unplug it for a crowd.
+A crowd of copies of you, in rows that recede to a vanishing point. Each
+row further back is smaller, dimmer and a few frames later, so movement
+ripples back through the crowd. Meant for a single performer; unplug it
+for a real crowd.
 
 1. Tab → TOP → **GLSL**, renamed **`clones`**. In its `_pixel` DAT, set
    **File** to `shaders/clones.glsl`, with Sync to File on. **Common** page:
    **Pixel Format** 16-bit float (RGBA).
-2. Wire it in (puts `clones` between `look` and `out`) and set its values:
+2. Run the wiring script. It also **creates** `history_image` and
+   `history_mask` (Texture 3D TOPs keeping the last 32 frames) and wires
+   everything. Then set the values:
    ```python
    exec(open(project.folder + '/scripts/wiring.py').read())
    ```
@@ -307,16 +310,18 @@ unplug it for a crowd.
    exec(open(project.folder + '/scripts/uniforms.py').read())
    ```
 
-✅ Four copies of you, two on each side, smaller and dimmer further out,
-moving with you. You stay in front.
+✅ Rows of copies of you, getting smaller and dimmer towards the horizon,
+each row moving a little later than the one in front.
 
 **Unplug / plug in:**
 ```python
 c = op('/project1/clones'); c.bypass = not c.bypass; print('clones', 'off' if c.bypass else 'on')
 ```
-Knobs (`clones` block in `scripts/uniforms.py`): `uCloneCount` (0 to 8),
-`uCloneSpacing` (distance apart), `uCloneScale` (1 = all the same size),
-`uCloneFade` (1 = all equally bright).
+Knobs (`clones` block in `scripts/uniforms.py`): `uRows` (0 to 10),
+`uColumns` (per side, 0 to 8), `uCloneSpacing`, `uRowDepth` (how fast rows
+shrink), `uHorizon` (vanishing-point height), `uFog` (fade with distance),
+`uRowDelayFrames` / `uColumnDelayFrames` (the ripple; 0 = in sync). The
+total delay must stay under 32 frames (`HISTORY_FRAMES` in `wiring.py`).
 
 ## If the network misbehaves
 

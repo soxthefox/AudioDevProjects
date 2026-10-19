@@ -10,10 +10,20 @@ file, prints each difference it finds, and fixes it. Run it whenever the
 network misbehaves: a wire accidentally dropped onto the wrong node, for
 example, creates a cook loop that turns everything black.
 
-Paths in WIRED and PARS are relative to NETWORK.
+Paths in WIRED and PARS are relative to NETWORK. Operators in CREATE are
+made if missing (the others are built by hand, see WALKTHROUGH.md).
 """
 
 NETWORK = '/project1'
+
+HISTORY_FRAMES = 32
+"""Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
+
+# Operators the script creates if they do not exist: name -> operator type.
+CREATE = {
+    'history_image': 'texture3dTOP',
+    'history_mask': 'texture3dTOP',
+}
 
 # Wired inputs, in input order. A GLSL TOP takes at most three wired inputs.
 WIRED = {
@@ -24,7 +34,9 @@ WIRED = {
     'mosh_fb': ['stylize'],
     'mosh': ['stylize', 'mosh_fb', 'mask'],
     'look': ['mosh', 'motion'],
-    'clones': ['look', 'mask'],   # optional; bypass the node to unplug it
+    'history_image': ['look'],
+    'history_mask': ['mask'],
+    'clones': ['look', 'history_image', 'history_mask'],   # optional; bypass to unplug
     'out': ['clones'],
 }
 
@@ -37,6 +49,47 @@ PARS = {
     'mosh': {'tops': 'rows motion'},                           # GLSL inputs 3 and 4
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
 }
+
+# History nodes: a ring buffer whose write slot is set explicitly to
+# frame mod HISTORY_FRAMES, so clones.glsl can find the frame from N frames ago.
+HISTORY_PARS = {
+    'type': 'texture2darray',
+    'cachesize': HISTORY_FRAMES,
+    'replacesingle': True,
+}
+HISTORY_EXPRESSIONS = {
+    'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAMES),
+}
+
+
+def _create_missing(network):
+    parent = op(network)
+    for name, op_type in CREATE.items():
+        if op(network + '/' + name) is None:
+            print('wiring: creating {} ({})'.format(name, op_type))
+            parent.create(eval(op_type), name)  # e.g. texture3dTOP, a TouchDesigner built-in
+
+
+def _check_history(network):
+    for name in CREATE:
+        node = op(network + '/' + name)
+        if node is None:
+            continue
+        for par_name, value in HISTORY_PARS.items():
+            par = getattr(node.par, par_name, None)
+            if par is None:
+                print('wiring: {} has no parameter {}'.format(name, par_name))
+            elif par.eval() != value:
+                print('wiring: {}.{} {!r} -> {!r}'.format(name, par_name, par.eval(), value))
+                par.val = value
+        for par_name, expression in HISTORY_EXPRESSIONS.items():
+            par = getattr(node.par, par_name, None)
+            if par is None:
+                print('wiring: {} has no parameter {}'.format(name, par_name))
+            elif par.expr != expression or par.mode != ParMode.EXPRESSION:
+                print('wiring: {}.{} = {}'.format(name, par_name, expression))
+                par.expr = expression
+                par.mode = ParMode.EXPRESSION
 
 
 def _check_wiring(network):
@@ -70,9 +123,11 @@ def _check_pars(network):
 
 
 def apply(network=NETWORK):
+    _create_missing(network)
     _check_wiring(network)
     _check_pars(network)
-    print('wiring: checked {} operators'.format(len(set(WIRED) | set(PARS))))
+    _check_history(network)
+    print('wiring: checked {} operators'.format(len(set(WIRED) | set(PARS) | set(CREATE))))
 
 
 apply()
