@@ -183,6 +183,15 @@ will come from tuning with the guitar (milestone 5).
 
 ---
 
+## D8. Repo location (provisional)
+
+`moshviz/` lives as a top-level folder in AudioDevProjects. That follows
+the repo convention of self-contained per-project folders, and it keeps
+the YIN source it ports one branch away. It can be split into its own repo
+with `git subtree split` if a standalone link reads better on applications.
+
+---
+
 ## D9. Mosh weighting: persistent per-block selection, not per-pixel blending (decided)
 
 **First version.** Each frame, output = mix(live, stale, amount). This
@@ -414,12 +423,3 @@ blends continuously between the band layout (0) and motion (1), so the
 frequency layout is still available, alone or mixed in. This ties the
 three layers together: motion is visible as colour, breaks the image
 where it happens, and the music modulates how hard.
-
----
-
-## D8. Repo location (provisional)
-
-`moshviz/` lives as a top-level folder in AudioDevProjects. That follows
-the repo convention of self-contained per-project folders, and it keeps
-the YIN source it ports one branch away. It can be split into its own repo
-with `git subtree split` if a standalone link reads better on applications.

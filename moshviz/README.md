@@ -5,28 +5,31 @@ TouchDesigner with hand-written GLSL and a Python audio-analysis service.
 
 ## What we are doing
 
-A camera films a performer, at first Sohum playing guitar. The live audio
-drives a datamosh of the image: video blocks freeze and get dragged along
-the performer's movement, the way a video stream breaks when it loses its
-keyframes. The music decides **where** and **how much** the image breaks:
+A camera, or a recording of a show, is turned into a moving abstract image
+that breaks apart with the music. Video blocks freeze and get dragged along
+the movement, the way a video stream breaks when it loses its keyframes
+(datamoshing).
 
-- **Frequency → place.** The spectrum is split into 24 bands, laid out as
-  concentric rings: bass is a large disc at the centre of the frame, and
-  the highs are thin rings out at the edges.
+- **Movement decides where.** The image breaks where things move: dancers,
+  performers, light sweeps. The same moving blocks glow in colour, with hue
+  showing the direction of movement.
+- **Music decides how much.** Live audio analysis drives the strength:
+  loud passages break the image harder, and silence keeps it intact. A
+  frequency layout is also available, alone or mixed in: bass breaks a
+  large disc at the centre, highs thin rings at the edges.
 - **Melody vs chord → shape.** A polyphony measure (from YIN pitch
-  detection) tells single notes from chords. Single notes mosh a few
-  narrow bands; chords mosh wide, connected areas.
-- **Onsets → kick.** Strums and drum hits give a short boost.
-- **Silence → clean.** A level gate keeps the image intact when nothing is
-  playing.
-
-The performer is segmented and always stays clean while the world around
-them moshes. The image is not photographic: it is turned into
-lidar-like outlines, where moving edges glow and still ones fade, so the
-piece is about movement rather than the room. An optional "clones" pass
-fills the frame with a crowd of copies of the performer, receding in
-rows to a vanishing point, each row repeating the movement a few frames
-later.
+  detection) tells single notes from chords, so single notes break narrow
+  areas and chords wide ones.
+- **Not photographic.** The picture becomes lidar-like outlines plus the
+  stage lights in their own colours, so the piece is about movement and
+  light rather than the room.
+- **Performer stays clean** (camera mode): a person mask keeps the
+  performer intact while the world around them moshes.
+- **Clones** (optional): a crowd of copies receding to a vanishing point,
+  each row repeating the movement a few frames later.
+- **Mirrored canvas:** the output is always 1280 × 720; any image that does
+  not fill it (a portrait phone clip, for example) is continued with
+  mirrored copies, with an optional symmetry mode for a kaleidoscope look.
 
 **Why.** This is portfolio work for master's applications. Each part
 shows a skill that the rest of the transcript does not:
@@ -34,41 +37,45 @@ shows a skill that the rest of the transcript does not:
 | Part | Skill shown | For |
 |---|---|---|
 | Polyphony, onset and band features from live audio; YIN reused from my own plugin | Signal processing, music information retrieval | UPF Sound and Music Computing |
-| Hand-written GLSL: motion estimation, datamosh, stylisation, clones | Real-time graphics programming | Utrecht Game and Media Technology |
-| Live interactive audiovisual system, with a small user test | Interaction design and evaluation | KTH Interactive Media Technology |
+| Hand-written GLSL: motion estimation with illumination compensation, datamosh, stylisation, clones, mirror canvas | Real-time graphics programming | Utrecht Game and Media Technology |
+| Live interactive audiovisual system with a control panel, plus a small user test | Interaction design and evaluation | KTH Interactive Media Technology |
 
-The reasoning behind every significant choice is in the
-[decision log](docs/decisions.md).
+The reasoning behind every significant choice, with evidence, is in the
+[decision log](docs/decisions.md) (D1–D17).
 
 ## Pipeline
 
 ```
- guitar / mic ──► features/service.py ──OSC──► oscin1 ─► rows_sel ─► rows (1 x 24 texture)
-                  bands, onset, polyphony,                                 │
-                  gate → 24 mosh amounts                                   │
-                                                                           ▼
- webcam ──► MediaPipe plugin ──► mp_video ─► cam ─┬─► motion.glsl  (block motion vectors)
-                     │                            │        │
-                     └──► selfie mask ──► mask    │        ▼
-                                           │      └─► stylize.glsl (glowing outlines)
-                                           │               │
-                                           └──────────► mosh.glsl   (feedback datamosh, rings)
-                                                           │
-                                                        look.glsl   (grade + motion glow)
-                                                           │
-                                                        clones.glsl (optional crowd) ─► out
+ audio (mic, guitar, or the clip's own sound)
+   └─► features/service.py ──OSC──► oscin1 ─► rows_sel ─► rows (1 x 24 band amounts)
+       bands, onsets, polyphony,                            │
+       gate → 24 amounts                                    │
+                                                            ▼
+ webcam ─► MediaPipe plugin ─► mp_video ─┐          ┌──────────────────────────────┐
+              └─► selfie mask ─► mask    ├─► prep ─► cam ─┬─► motion  (block motion vectors)
+ show clip ─► movie ─► clip_xform ───────┘  (input  │      ├─► stylize (outlines + lights)
+                                            grading)│      │       │
+                                                    │      └──► mosh  (feedback datamosh:
+                                                    │               motion and/or rings
+                                                    │               decide where, audio how much)
+                                                    │                │
+                                                    │             look  (motion-colour glow)
+                                                    │                │
+                       motion ─► motion_mask ─► history buffers ─► clones (optional crowd)
+                                                                     │
+                                                                  frame (1280 x 720, mirror fill) ─► out
 ```
 
 ## Status
 
 | # | Milestone | State |
 |---|---|---|
-| 1 | Camera | **Webcam + MediaPipe** in use; Kinect deferred ([capture/README.md](capture/README.md)) |
-| 2 | Subject mask | **Done**: MediaPipe selfie segmentation, live, aligned with the video |
-| 3 | Feature service + tests | **Done**: 50 feature tests (+ 6 for the motion maths); live with the MacBook mic |
-| 4 | Shaders | **Done**: motion, mosh (rings), stylize, look, clones |
-| 5 | Tuning with guitar | In progress (tuned so far with music through the mic) |
-| 6 | Measurements | Partly done (see below); audio-to-visual latency still to measure |
+| 1 | Camera | **Webcam + MediaPipe** in use; show recordings as a second source; Kinect deferred ([capture/README.md](capture/README.md)) |
+| 2 | Subject mask | **Done**: MediaPipe selfie segmentation (camera); motion mask for clones on video |
+| 3 | Feature service + tests | **Done**: 67 tests (features, service, motion maths, video converter) |
+| 4 | Shaders | **Done**: prep, motion, stylize, mosh, look, clones, motion_mask, frame |
+| 5 | Tuning | In progress: tuned with music through the mic and with show footage; guitar takes to do |
+| 6 | Measurements | Partly done (see below); end-to-end audio-to-visual latency still to measure |
 | 7 | Mini user test | To do |
 | 8 | Demo video | To do |
 
@@ -78,42 +85,67 @@ The reasoning behind every significant choice is in the
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r features/requirements.txt
-.venv/bin/pytest                                                   # 56 tests
+.venv/bin/pytest                                                       # 67 tests
 .venv/bin/python features/service.py --list-devices
-.venv/bin/python features/service.py --device "MacBook Air Microphone"
-.venv/bin/python features/service.py --device "<interface>" --channel 0   # guitar
-.venv/bin/python features/service.py --file take.wav --loop              # recording (silent)
-.venv/bin/python features/service.py --file show.mov --play --loop        # play a video's audio as the clock
+.venv/bin/python features/service.py --device "MacBook Air Microphone"   # live audio
+.venv/bin/python features/service.py --device "<interface>" --channel 0  # guitar
+.venv/bin/python features/service.py --file show.mov --play --loop --set threshold=0.7
 ```
 
-The service logs level, polyphony, onset and strip amounts every 2 s.
+`--play` plays a file's audio (sound or video file) and analyses exactly
+what it plays, sending the playback position to TouchDesigner as the video
+clock. `--set NAME=VALUE` starts with a mapping value (dense band audio
+needs a higher threshold than a solo guitar). The service logs level,
+polyphony, onset and strip amounts every 2 s.
 
 **2. MediaPipe plugin.** Download `release.zip` of
 [torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner)
 v0.6.0 and unzip it to `td/vendor/mediapipe-touchdesigner/`. That folder is
 gitignored (188 MB), and the `.toe` links to it as an external `.tox`.
 
-**3. TouchDesigner.** Open `td/moshviz.toe`. The project runs at 30 fps to
-match the camera. Then, in the Textport (Dialogs → Textport and DATs):
+**3. TouchDesigner.** Open `td/moshviz.toe`. Then, in the Textport
+(Dialogs → Textport and DATs):
 
 ```python
 exec(open(project.folder + '/scripts/mediapipe_settings.py').read())   # segmentation only
-exec(open(project.folder + '/scripts/wiring.py').read())               # check/repair all connections
+exec(open(project.folder + '/scripts/wiring.py').read())               # build/check/repair the network
 exec(open(project.folder + '/scripts/uniforms.py').read())             # apply all shader values
 ```
 
-To run on a video file instead of the camera (no performer mask, clones
-off; the movie follows the audio clock):
+**4. Live controls.** Click the **`controls`** node; its Controls page has
+everything you adjust while it runs:
 
-```python
-MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
+| Group | Controls |
+|---|---|
+| Effect | **Mosh from motion** (0 = frequency rings, 1 = movement decides where), **Clones** on/off |
+| Input grading (before analysis) | **Exposure, Brightness, Contrast, Gamma, Saturation, Soften** (denoise) |
+| Clip (movie mode) | **Clip start / end**, **Zoom**, **Offset X / Y**, **Rotate** |
+| Output canvas | **Mirror fill**, **Mirror fade**, **Symmetry**, **Fit zoom** |
+
+### Running on a show recording
+
+```bash
+.venv/bin/python tools/intra_frame.py recordings/show.mov   # upright, 30 fps, intra-frame copy
 ```
 
-Live controls (clones on/off, clip trim, zoom, offset, rotation) are on
-the **`controls`** node's parameter panel, on its Controls page.
+Set `MOVIE_FILE`, `MOVIE_SIZE` and `MOVIE_DURATION_S` in
+`td/scripts/wiring.py` to the copy (the script prints its size and
+length). Then choose the clock:
 
-Building the network from scratch, step by step: [td/WALKTHROUGH.md](td/WALKTHROUGH.md).
-Compact reference: [td/README.md](td/README.md).
+```python
+# The clip's own sound drives the visuals (start the service with --file show.mov --play):
+MOSHVIZ_SOURCE = 'movie'; MOSHVIZ_CLOCK = 'audio'; exec(open(project.folder + '/scripts/wiring.py').read())
+# The clip loops silently; the visuals react to live audio (service on a mic or loopback device):
+MOSHVIZ_SOURCE = 'movie'; MOSHVIZ_CLOCK = 'free'; exec(open(project.folder + '/scripts/wiring.py').read())
+# Back to the webcam:
+MOSHVIZ_SOURCE = 'camera'; exec(open(project.folder + '/scripts/wiring.py').read())
+```
+
+Re-run `uniforms.py` after switching: movie footage gets its own settings
+(relative edges, light layer, smooth glow).
+
+Step-by-step build guide: [td/WALKTHROUGH.md](td/WALKTHROUGH.md).
+Compact reference and troubleshooting: [td/README.md](td/README.md).
 
 ## Everything lives in text
 
@@ -121,11 +153,12 @@ TouchDesigner saves projects as binary `.toe` files, which version control
 cannot diff. So the `.toe` holds as little as possible:
 
 - **Shaders** are `.glsl` files, loaded by Text DATs with Sync to File.
-- **Shader values** (every uniform) live in
-  [td/scripts/uniforms.py](td/scripts/uniforms.py).
-- **Connections** (every wire and operator reference) live in
-  [td/scripts/wiring.py](td/scripts/wiring.py), which also repairs a broken
-  network.
+- **Network** (every wire, operator reference, created node and control
+  parameter) lives in [td/scripts/wiring.py](td/scripts/wiring.py), which
+  builds missing parts, repairs broken wiring, and switches between camera
+  and movie.
+- **Shader values** (every uniform, with per-source overrides and bindings
+  to the control panel) live in [td/scripts/uniforms.py](td/scripts/uniforms.py).
 - **Plugin settings** live in
   [td/scripts/mediapipe_settings.py](td/scripts/mediapipe_settings.py).
 - **Audio mapping parameters** live in `features/mapping.py`, and can be
@@ -137,24 +170,30 @@ cannot diff. So the `.toe` holds as little as possible:
 features/               Python feature service (audio in, OSC out)
   yin.py                YIN pitch detector, ported from multivoicer (see below)
   features.py           band energies, spectral-flux onsets, polyphony, smoothing
-  mapping.py            features → 24 mosh amounts (gate, threshold, sharpness, spread)
-  service.py            real-time audio input and OSC
+  mapping.py            features → 24 amounts (gate, threshold, sharpness, spread)
+  service.py            live input or file playback (audio clock, trim), OSC
   evaluate.py           compares polyphony measures on labelled recordings
   synth.py              synthetic test signals (plucked strings, chords, clicks)
   tests/
 td/
   moshviz.toe           TouchDesigner project (binary, minimal)
-  shaders/motion.glsl   per-macroblock Lucas-Kanade motion vectors
-  shaders/stylize.glsl  lidar-like outlines, bright where moving
-  shaders/mosh.glsl     feedback datamosh, ring layout, subject mask
-  shaders/look.glsl     colour grade + audio-reactive motion glow
-  shaders/clones.glsl   optional crowd of time-delayed copies
-  scripts/              uniforms, wiring and plugin settings (see above)
+  shaders/prep.glsl         input grading before analysis
+  shaders/motion.glsl       per-block Lucas-Kanade motion, illumination-compensated
+  shaders/stylize.glsl      outlines (absolute or Weber-contrast edges) + light layer
+  shaders/mosh.glsl         feedback datamosh; motion- or band-driven; subject mask
+  shaders/look.glsl         colour grade + motion glow (flat blocks or smooth)
+  shaders/motion_mask.glsl  "whatever moves" mask (clones on video)
+  shaders/clones.glsl       optional crowd of time-delayed copies
+  shaders/frame.glsl        fixed output canvas, mirror fill, symmetry
+  scripts/              wiring, uniforms and plugin settings (see above)
   reference/            numpy mirror of the motion shader + tests
   vendor/               third-party plugin (gitignored)
-  WALKTHROUGH.md        beginner build guide
+  WALKTHROUGH.md        step-by-step build guide
+tools/
+  intra_frame.py        phone video → upright, constant-frame-rate ProRes for TouchDesigner
 capture/                camera and mask notes (Kinect plan, MediaPipe)
 docs/decisions.md       decision log
+recordings/             local clips (gitignored)
 ```
 
 ## How it works
@@ -178,42 +217,67 @@ loop, and a test checks that both agree.
 and YIN use 2048 samples, because a guitar's low E (82 Hz) has a period
 longer than 512 samples ([D6](docs/decisions.md)).
 
-**Datamosh as codec emulation.** A video codec predicts each frame by
-moving blocks of the previous frame along motion vectors, and keyframes
-periodically reset it. Datamoshing removes the keyframes, so stale
-pixels get dragged along new motion. `motion.glsl` estimates one vector
-per 8 × 8 block (Lucas-Kanade), as an encoder would ([D4](docs/decisions.md)).
-`mosh.glsl` gives each block a fixed random threshold. While its ring's
-audio amount is above that threshold, the block shows the previous output
-warped by its motion vector instead of the live image, and stays that way
-until the music drops. Blending every pixel by the amount instead made
-trails fade within a few frames ([D9](docs/decisions.md)).
+**Motion estimation.** `motion.glsl` estimates one vector per macroblock
+(Lucas-Kanade), as a video encoder would ([D4](docs/decisions.md)). Stage
+lighting breaks LK's brightness-constancy assumption: a strobe reads as
+motion everywhere. Each block therefore measures its brightness gain
+between frames and compensates before differencing. In tests, a 60 %
+flash drops from over 0.3 px of false motion to under 0.05 px, while real
+movement during the flash is still recovered ([D14](docs/decisions.md)).
 
-**Rings.** Band position is (distance from centre)^k; k = 3 gives the
-lowest band about 22 % of the frame ([D10](docs/decisions.md)).
+**Datamosh as codec emulation.** A codec predicts each frame by moving
+blocks of the previous frame along motion vectors, and keyframes reset
+it. Datamoshing removes the keyframes, so stale pixels get dragged along
+new motion. `mosh.glsl` gives each block a fixed random threshold. While
+the block's amount is above it, the block shows the previous output
+warped by its motion vector, and stays that way until the amount drops
+([D9](docs/decisions.md)). The amount comes from movement × audio energy
+(motion drive, [D17](docs/decisions.md)), from the frequency rings
+([D10](docs/decisions.md)), or a blend of the two.
 
-**Outlines.** `stylize.glsl` replaces the photo with thresholded Sobel
-edges, brightened by local motion and coloured by the mask (performer
-versus room). It runs before the mosh, so the mosh smears lines; the motion
-pass still sees the raw camera ([D11](docs/decisions.md)).
+**Outlines and light.** `stylize.glsl` replaces the photo with thresholded
+Sobel edges, brightened by local motion. On dark stage footage it can
+divide the gradient by local brightness (Weber contrast), so edges in
+shadow count as much as edges under a spotlight. A light layer keeps only
+the bright parts (spotlights, strobes, LEDs) in their own colour, with a
+glow ([D11](docs/decisions.md), [D14](docs/decisions.md)).
+
+**Input grading.** `prep.glsl` adjusts the input before any analysis, so
+more contrast also means more motion and more edges to find
+([D15](docs/decisions.md)).
 
 **Clones.** Mask-cut copies of the finished image in pinhole perspective:
 row r at depth z = 1 + r·d is scaled by 1/z towards a vanishing point and
-fades with depth. Each row replays the performer a few frames later from
-a 32-frame history (Texture 3D TOPs used as ring buffers). A lighten blend
-keeps the performer's outlines on top ([D12](docs/decisions.md)).
+fades with depth. Each row replays the movement a few frames later from a
+32-frame history (Texture 3D TOPs used as ring buffers). On video, where
+there is no person mask, a motion mask makes the clones copy whatever
+moves ([D12](docs/decisions.md)).
+
+**Mirror canvas.** `frame.glsl` fits the image inside a fixed 1280 × 720
+canvas and folds coordinates outside it with a triangle wave,
+1 − |mod(x, 2) − 1|, so mirrored copies join seamlessly
+([D16](docs/decisions.md)).
+
+**Video sync.** With a show recording, the audio is the master clock: the
+service plays the sound and sends its position, and the movie shows the
+frame at that time ([D13](docs/decisions.md)). Phone video has to be
+converted first (`tools/intra_frame.py`): HEVC froze when seeked every
+frame, and variable-frame-rate clips with a misleading nominal rate
+(120 fps on a 29.5 fps clip) played four times too fast.
 
 ## Measurements
 
-On an Apple M1 MacBook Air, at 1280 × 720:
+On an Apple M1 MacBook Air, at 1280 × 720 (the Non-Commercial licence cap):
 
 | What | Value | How |
 |---|---|---|
-| Output frame rate | **30 fps, steady** (locked to the camera rate) | Perform CHOP |
-| Frame rate with the project left at 60 fps | 43 fps, uneven: every other frame repeated the camera image, so motion and mosh flickered | Perform CHOP; reason for locking to 30 |
-| GPU/CPU cook time per shader pass | under 1 ms each (stylize 0.97 ms, mosh 0.18 ms, motion 0.18 ms) | operator cook times |
+| Output frame rate | **30 fps, steady**, with the cook rate matched to the source | Perform CHOP |
+| Frame rate with the project left at 60 fps | 43 fps, uneven: repeated camera frames made motion and mosh flicker | Perform CHOP; reason for matching the source rate |
+| Cook time per shader pass | under 1 ms each (stylize 0.97 ms, mosh 0.18 ms, motion 0.18 ms) | operator cook times |
 | Feature extraction | 0.35 ms per 5.3 ms hop (about 15× real-time headroom) | offline benchmark |
-| Mic input latency (sounddevice) | 37.7 ms | reported by the audio stream |
+| Mic input latency | 37.7 ms | reported by the audio stream |
+| Playback output latency (`--play`) | 8.4 ms | reported by the audio stream |
+| Show footage brightness | 3 % mean; outline content 0.19 % → 5.1 % with relative edges and exposure lift | mean of TOP pixels |
 | Audio-to-visual latency, end to end | to do | 240 fps phone video of a pluck and the screen |
 
 ## User test

@@ -19,35 +19,52 @@ relative to the `.toe`, so the repo works from any clone location.
 
 ## Network
 
+Created or checked by `scripts/wiring.py` (camera mode shown first; movie
+mode swaps the source and the clone mask):
+
 ```
-MediaPipe (plugin, webcam) ─► image_segmentation ─┬─ original_video ─► mp_video (Select) ─► cam (Null)
-                                                  └─ selfie_mask ────► mask (Select)
+MediaPipe (plugin, webcam) ─► image_segmentation ─┬─ original_video ─► mp_video (Select) ─┐
+                                                  └─ selfie_mask ────► mask (Select)       │
+movie (Movie File In) ─► clip_xform (Transform) ───────────────────────── [movie mode] ────┤
+                                                                                           ▼
+                                                           prep (GLSL, input grading) ─► cam (Null)
 cam ─► prev_cam (Feedback, target cam)
-cam, prev_cam ─────────────────► motion   (GLSL, 160 x 90, 32-bit float)
-cam, motion, mask ─────────────► stylize  (GLSL)
+cam, prev_cam ─────────────────► motion       (GLSL, source size / block px, 32-bit float)
+motion ────────────────────────► motion_mask  (GLSL, "whatever moves", clones on video)
+cam, motion, mask* ────────────► stylize      (GLSL: outlines + light layer)
 stylize ─► mosh_fb (Feedback, target mosh)
-stylize, mosh_fb, mask ────────► mosh     (GLSL; TOPs: rows motion)
-oscin1 (OSC In, port 9000) ─► rows_sel (Select CHOP, *row*) ─► rows (CHOP to TOP, 1 x 24, R, 32-bit)
-mosh, motion ──────────────────► look     (GLSL)
+stylize, mosh_fb, mask* ───────► mosh         (GLSL; TOPs: rows motion)
+oscin1 (OSC In, 9000) ─► rows_sel (Select CHOP, *row*) ─► rows (CHOP to TOP, 1 x 24, R, 32-bit)
+mosh, motion ──────────────────► look         (GLSL: grade + motion glow)
 look ─► history_image (Texture 3D, 2D array, 32 frames)
-mask ─► history_mask  (Texture 3D, 2D array, 32 frames)
-look, history_image, history_mask ─► clones (GLSL; TOPs: mask; bypass to unplug) ─► out (Null)
-perf (Perform CHOP)  frame-rate readout
+clone mask ─► history_mask (Texture 3D, 2D array, 32 frames)
+look, history_image, history_mask ─► clones   (GLSL; TOPs: clone mask)
+look, clones ──────────────────► clones_switch (Switch; index = Clones control)
+clones_switch ─► frame (GLSL, 1280 x 720, mirror fill) ─► out (Null)
+controls (Base COMP)   control panel: custom parameters, read by expressions
+clip_timing ─► clip_osc (OSC Out, 9001)   clip trim to the service
+perf (Perform CHOP), movie_info (Info CHOP)   readouts
 ```
 
-Settings that are not in the scripts:
+`mask*` is `mask` with the camera and `no_mask` (black) with a movie. The
+clone mask is `mask` with the camera and `motion_mask` with a movie.
 
-- **Project cook rate: 30 fps**, matching the camera. At 60 fps, every
-  other frame repeats the camera image and the motion field flickers.
-- **GLSL TOPs:** Pixel Format 16-bit float (RGBA) for `stylize`, `mosh`,
-  `look` and `clones`; 32-bit float and a custom 160 × 90 resolution for
-  `motion` (1280 × 720 ÷ 8 px blocks). Input Extend Mode UV: Hold.
+Settings that matter:
+
+- **Cook rate matches the source** (30 fps camera; the movie's rate). The
+  wiring script sets it. A mismatch repeats frames, and the motion field
+  flickers on the repeats.
+- **GLSL TOPs:** 16-bit float RGBA, except `motion` (32-bit float, custom
+  resolution = source size ÷ block size). Input Extend Mode UV: Hold.
 - **A GLSL TOP takes at most three wired inputs.** Extra inputs go in its
-  **TOPs** parameter and are numbered after the wired ones. Inputs are
-  also grouped by texture type: 2D texture arrays (the history nodes)
-  appear as `sTD2DArrayInputs[]`, separately from `sTD2DInputs[]`.
+  **TOPs** parameter and are numbered after the wired ones. Inputs are also
+  grouped by texture type: 2D texture arrays (the history nodes) appear as
+  `sTD2DArrayInputs[]`, separately from `sTD2DInputs[]`.
 - `mosh` writes each block's audio amount into its output alpha for
-  `look`; `look` and `clones` output alpha 1.
+  `look`; `look`, `clones` and `frame` output alpha 1.
+- **Movie files** must be intra-frame and constant frame rate
+  (`tools/intra_frame.py`). If you replace a converted file, give it a new
+  name: TouchDesigner caches a movie's metadata by path.
 
 ## Live audio tuning
 
@@ -66,3 +83,7 @@ fields of `MappingParams` in `features/mapping.py`: `gate_db`,
 | Stuck black/frozen after errors | Pulse **Reset** on `mosh_fb` |
 | New uniforms missing | Run `scripts/uniforms.py` (it adds rows). The GLSL page's Load button does not rename or remove existing rows |
 | Mask frozen | MediaPipe "background only" mode breaks `image_segmentation`; run `scripts/mediapipe_settings.py` |
+| Movie freezes after a few seconds | It is HEVC/H.264; convert it with `tools/intra_frame.py` |
+| Movie plays too fast | Variable-frame-rate phone clip, or a cached old file: convert it, and load the copy under a new name |
+| Custom slider stops at 1 | Default slider range; run `scripts/wiring.py` (sets ranges) or type the value |
+| Preview shows dots in 3D | The viewer is in point mode: activate the viewer (A), right-click inside it → View as Image (V) |
