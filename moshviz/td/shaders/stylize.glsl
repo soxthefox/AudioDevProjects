@@ -47,6 +47,7 @@ uniform float uPointMix;        // 0 = continuous lines, 1 = lines made only of 
 uniform float uImageLevel;      // how much of the (exposure-lifted) image shows under the lines (0 = none)
 uniform vec3  uSubjectColour;   // outline colour on the performer
 uniform vec3  uRoomColour;      // outline colour on everything else
+uniform float uLineLevel;       // overall outline brightness (1 = full; lower lets the motion glow lead)
 uniform float uLineTint;        // 0 = fixed line colours, 1 = lines take the scene's local hue
 uniform float uLightLevel;      // strength of the light layer (0 = off)
 uniform float uLightThreshold;  // raw luma above which a pixel counts as a light (e.g. 0.45)
@@ -146,7 +147,7 @@ void main()
 
     float edge = smoothstep(uEdgeThreshold, uEdgeThreshold + EDGE_SOFTNESS,
                             sobelMagnitude(uv) * uEdgeGain);
-    float brightness = edge * mix(uStaticLevel, 1.0, motionEmphasis(uv));
+    float brightness = uLineLevel * edge * mix(uStaticLevel, 1.0, motionEmphasis(uv));
     brightness *= mix(1.0, dotGrid(uv), uPointMix);
 
     float subject = texture(sTD2DInputs[MASK], uv).r;

@@ -50,6 +50,7 @@ UNIFORMS = {
         'uImageLevel': (0.0,),
         'uSubjectColour': (1.0, 0.95, 0.9),
         'uRoomColour': (0.2, 0.75, 1.0),
+        'uLineLevel': (1.0,),
         'uLineTint': (0.0,),
         'uLightLevel': (0.0,),
         'uLightThreshold': (0.45,),
@@ -99,6 +100,7 @@ SOURCE_OVERRIDES = {
             # People on stage move less than the lights; keep still
             # outlines bright so they stay readable.
             'uStaticLevel': (0.7,),
+            'uLineLevel': (0.35,),
             'uImageLevel': (0.0,),    # no photographic overlay
             # Stage lighting comes back as light only: the bright parts in
             # their own colour, with a glow, and lines tinted by the scene.
@@ -109,6 +111,15 @@ SOURCE_OVERRIDES = {
             # Heal moshed blocks faster so people's outlines re-form
             # instead of dissolving into trails.
             'uRefresh': (0.15,),
+        },
+        # The motion field's colours lead; outlines sit underneath. Dark
+        # footage moves less in luma terms, so the glow reacts to smaller
+        # speeds (full colour at 1.5 px/frame instead of 3).
+        'look': {
+            'uMotionGlow': (1.0,),
+            'uGlowAudio': (2.0,),
+            'uMotionScalePx': (1.5,),
+            'uMotionFloorPx': (0.15,),
         },
     },
 }
