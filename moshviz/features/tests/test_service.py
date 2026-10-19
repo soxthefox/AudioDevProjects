@@ -7,7 +7,7 @@ from pythonosc.osc_bundle import OscBundle
 import synth
 from features import FeatureConfig, FeatureExtractor
 from mapping import MappingParams, row_amounts
-from service import build_bundle, load_audio
+from service import ClipWindow, build_bundle, load_audio
 
 SR = 48_000
 
@@ -30,3 +30,18 @@ def test_load_audio_reads_wav(tmp_path):
     audio = load_audio(path, SR)
     assert audio.shape == (len(tone), 2)
     np.testing.assert_allclose(audio[:, 0], tone, atol=1e-4)
+
+
+def test_clip_window_defaults_to_whole_file():
+    assert ClipWindow().bounds(48_000, SR, min_frames=256) == (0, 48_000)
+
+
+def test_clip_window_trims_and_clamps():
+    clip = ClipWindow()
+    clip.set('start', 0.25)
+    clip.set('end', 0.5)
+    assert clip.bounds(48_000, SR, min_frames=256) == (12_000, 24_000)
+    clip.set('end', 0.0)   # 0 = to the end of the file
+    assert clip.bounds(48_000, SR, min_frames=256) == (12_000, 48_000)
+    clip.set('start', 5.0)  # past the end: keep at least one block
+    assert clip.bounds(48_000, SR, min_frames=256) == (47_744, 48_000)

@@ -10,6 +10,9 @@
 // still analyses the real camera, which has the texture tracking needs.
 //
 // Per pixel:
+//   0. Luma is lifted first: multiplied by uExposure, then raised to uGamma
+//      (< 1 brightens shadows). Dark stage footage otherwise has gradients
+//      too small to pass the edge threshold, so only light flashes showed.
 //   1. Edge strength from a Sobel filter on luma, thresholded so camera noise
 //      in dark areas does not sparkle.
 //   2. Brightness = edge * mix(uStaticLevel, 1, motion), so moving outlines
@@ -18,6 +21,8 @@
 //   4. Line colour from the mask: one colour for the performer, one for the
 //      room, a depth-like separation without a depth camera.
 
+uniform float uExposure;        // luma gain before edge detection (1 = unchanged; e.g. 2 for dark footage)
+uniform float uGamma;           // luma gamma after exposure (1 = unchanged; < 1 lifts shadows, e.g. 0.6)
 uniform float uEdgeScalePx;     // Sobel tap spacing in pixels; larger = thicker, smoother lines (e.g. 1.5)
 uniform float uEdgeGain;        // multiplies the gradient magnitude before thresholding (e.g. 4)
 uniform float uEdgeThreshold;   // gradient below this (after gain) counts as no edge (e.g. 0.2)
@@ -43,7 +48,8 @@ out vec4 fragColor;
 
 float luma(vec2 uv)
 {
-    return dot(texture(sTD2DInputs[CAMERA], uv).rgb, REC709_LUMA);
+    float y = dot(texture(sTD2DInputs[CAMERA], uv).rgb, REC709_LUMA);
+    return pow(clamp(y * uExposure, 0.0, 1.0), max(uGamma, 1e-3));
 }
 
 // Gradient magnitude from a 3x3 Sobel kernel, normalised so a hard

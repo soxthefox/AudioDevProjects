@@ -348,9 +348,27 @@ everyone moshes (the dance-floor case), and clones are bypassed.
 ✅ You hear the show, and `out` shows it as outlines that mosh with the
 music: bass in the centre, highs at the edges.
 
+4. Apply the values. Movie mode lifts exposure for dark stage footage:
+   ```python
+   exec(open(project.folder + '/scripts/uniforms.py').read())
+   ```
+
+**Clip controls** (created by the wiring script):
+
+- **`clip_xform`** (Transform TOP): zoom (**Scale**), position
+  (**Translate**) and **Rotate** of the footage in the frame. Edit it on its
+  parameter panel; bypass it to go back to the original framing.
+- **`clip_timing`** (Constant CHOP): `moshviz/clip/start` and
+  `moshviz/clip/end`, in seconds (end 0 = to the end of the file). The
+  service loops between them, and the video follows. Edit the values on
+  its parameter panel.
+
+**Finer blocks:** set `BLOCK_PX` in `scripts/wiring.py` to 6 or 4 (default
+8) and re-run the wiring line.
+
 **Back to the camera:**
 ```python
-MOSHVIZ_SOURCE = 'camera'; exec(open(project.folder + '/scripts/wiring.py').read())
+MOSHVIZ_SOURCE = 'camera'; exec(open(project.folder + '/scripts/wiring.py').read()); exec(open(project.folder + '/scripts/uniforms.py').read())
 ```
 
 ## If the network misbehaves

@@ -7,7 +7,10 @@ version control. Keep them here instead and apply them from the Textport
     exec(open(project.folder + '/scripts/uniforms.py').read())
 
 That sets every uniform below on its GLSL TOP, finding each row by its
-uniform name and adding a row if the name is missing. Run it again after
+uniform name and adding a row if the name is missing. Values in
+SOURCE_OVERRIDES replace the defaults for the current input
+(MOSHVIZ_SOURCE, see wiring.py): dark stage footage needs more exposure
+than a lit webcam. Run it again after
 editing this file. Values are tuples of 1 to 4 numbers (x, y, z, w);
 strings are Python expressions (for example 'absTime.frame').
 """
@@ -17,6 +20,7 @@ NETWORK = '/project1'
 UNIFORMS = {
     'motion': {
         'uRegularisation': (0.001,),
+        'uIlluminationComp': (1.0,),
     },
     'mosh': {
         'uDisplacement': (3.0,),
@@ -31,6 +35,8 @@ UNIFORMS = {
         'uRadialCurve': (3.0,),
     },
     'stylize': {
+        'uExposure': (1.0,),
+        'uGamma': (1.0,),
         'uEdgeScalePx': (1.5,),
         'uEdgeGain': (4.0,),
         'uEdgeThreshold': (0.2,),
@@ -72,6 +78,16 @@ UNIFORMS = {
     },
 }
 
+SOURCE_OVERRIDES = {
+    'movie': {
+        'stylize': {
+            'uExposure': (2.0,),
+            'uGamma': (0.6,),
+            'uEdgeThreshold': (0.15,),
+        },
+    },
+}
+
 COMPONENTS = 'xyzw'
 
 
@@ -87,8 +103,17 @@ def _row_index(glsl, name):
     return i
 
 
+def _with_overrides(uniforms, source):
+    merged = {name: dict(values) for name, values in uniforms.items()}
+    for op_name, values in SOURCE_OVERRIDES.get(source, {}).items():
+        merged.setdefault(op_name, {}).update(values)
+    return merged
+
+
 def apply(network=NETWORK, uniforms=UNIFORMS):
-    for op_name, values in uniforms.items():
+    source = globals().get('MOSHVIZ_SOURCE', 'camera')
+    print('uniforms: source {}'.format(source))
+    for op_name, values in _with_overrides(uniforms, source).items():
         glsl = op(network + '/' + op_name)
         if glsl is None:
             print('uniforms: no operator {}/{}, skipped'.format(network, op_name))

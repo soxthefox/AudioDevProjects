@@ -24,6 +24,13 @@ SOURCE picks the input:
             audio clock: run the service with --file <same file> --play, and
             the movie shows the frame at /moshviz/time.
 
+Clip controls (movie mode), edited by hand in TouchDesigner:
+  clip_xform   Transform TOP between the movie and `cam`: zoom, position and
+               rotation of the footage. Bypass it to reset.
+  clip_timing  Constant CHOP with moshviz/clip/start and moshviz/clip/end, in
+               seconds (end 0 = file end). clip_osc sends them to the service,
+               which loops the audio between them, and the video follows.
+
 Paths in WIRED and PARS are relative to NETWORK. Operators in CREATE are
 made if missing (the others are built by hand, see WALKTHROUGH.md).
 """
@@ -51,7 +58,7 @@ HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
 
 USE_MOVIE = SOURCE == 'movie'
-VIDEO = 'movie' if USE_MOVIE else 'mp_video'
+VIDEO = 'clip_xform' if USE_MOVIE else 'mp_video'
 SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
 SOURCE_SIZE = MOVIE_SIZE if USE_MOVIE else CAMERA_SIZE
 
@@ -61,7 +68,13 @@ CREATE = {
     'history_mask': 'texture3dTOP',
     'movie': 'moviefileinTOP',
     'no_mask': 'constantTOP',
+    'clip_xform': 'transformTOP',
+    'clip_timing': 'constantCHOP',
+    'clip_osc': 'oscoutCHOP',
 }
+
+# Channels of clip_timing, sent to the service as OSC addresses.
+CLIP_CHANNELS = ('moshviz/clip/start', 'moshviz/clip/end')
 
 # Wired inputs, in input order. A GLSL TOP takes at most three wired inputs.
 WIRED = {
@@ -76,6 +89,8 @@ WIRED = {
     'history_mask': [SUBJECT_MASK],
     'clones': ['look', 'history_image', 'history_mask'],
     'out': ['clones'],
+    'clip_xform': ['movie'],
+    'clip_osc': ['clip_timing'],
 }
 
 # Parameters that refer to other operators.
@@ -100,6 +115,7 @@ SETTINGS = {
     'history_mask': HISTORY_SETTINGS,
     'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
+    'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},
     'motion': {'outputresolution': 'custom',
                'resolutionw': SOURCE_SIZE[0] // BLOCK_PX,
                'resolutionh': SOURCE_SIZE[1] // BLOCK_PX},
@@ -195,6 +211,22 @@ def _check_bypass(network):
             node.bypass = bypassed
 
 
+def _check_clip_timing(network):
+    """Give clip_timing its channel names. Values are left alone: they are yours to edit."""
+    node = op(network + '/clip_timing')
+    if node is None:
+        return
+    if node.seq.const.numBlocks < len(CLIP_CHANNELS):
+        node.seq.const.numBlocks = len(CLIP_CHANNELS)
+    for i, name in enumerate(CLIP_CHANNELS):
+        par = getattr(node.par, 'const{}name'.format(i), None)
+        if par is None:
+            print('wiring: clip_timing has no parameter const{}name'.format(i))
+        elif par.eval() != name:
+            print('wiring: clip_timing channel {} -> {}'.format(i, name))
+            par.val = name
+
+
 def _check_cook_rate():
     rate = MOVIE_FPS if USE_MOVIE else CAMERA_FPS
     if abs(project.cookRate - rate) > 1e-3:
@@ -211,6 +243,7 @@ def apply(network=NETWORK):
     _check_wiring(network)
     _check_pars(network)
     _check_settings(network)
+    _check_clip_timing(network)
     _check_bypass(network)
     print('wiring: source {}, checked {} operators'.format(
         SOURCE, len(set(WIRED) | set(PARS) | set(CREATE))))

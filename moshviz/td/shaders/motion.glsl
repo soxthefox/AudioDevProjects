@@ -18,13 +18,24 @@
 // A small ridge term (uRegularisation) keeps flat, textureless blocks at
 // v ~ 0 instead of blowing up. One vector per block mirrors how a codec
 // stores motion, and is what makes the final mosh look blocky.
+//
+// Illumination compensation. Brightness constancy fails under stage
+// lighting: a strobe makes the whole frame brighter, which LK reads as
+// motion everywhere, while real movement in the dark between flashes
+// barely registers. A flash mostly scales brightness, so each block first
+// measures its gain g = mean(current) / mean(previous) and compares the
+// current frame with g * previous. A uniform flash then cancels within
+// the block, and only real movement remains. uIlluminationComp blends
+// between none (0) and full compensation (1).
 
 uniform float uRegularisation;   // ridge term added to the 2x2 diagonal (luma^2 units). Try 1e-3.
+uniform float uIlluminationComp; // 0 = raw brightness constancy, 1 = per-block gain compensation
 
 const int CURRENT = 0;
 const int PREVIOUS = 1;
 const int SAMPLES_PER_AXIS = 4;  // 4 x 4 = 16 LK samples per block
 const float MIN_REGULARISATION = 1e-6;  // keeps det > 0 even if the uniform is unset (0)
+const float MIN_MEAN_LUMA = 1e-3;       // avoids dividing by a black block's mean
 const vec3 REC709_LUMA = vec3(0.2126, 0.7152, 0.0722);
 
 out vec4 fragColor;
@@ -47,6 +58,19 @@ void main()
     vec2 dx = vec2(spacingPx.x, 0.0) * inTexel;
     vec2 dy = vec2(0.0, spacingPx.y) * inTexel;
 
+    // Pass 1: block gain between the frames (see illumination compensation).
+    float meanCurrent = 0.0, meanPrevious = 0.0;
+    for (int j = 0; j < SAMPLES_PER_AXIS; ++j) {
+        for (int i = 0; i < SAMPLES_PER_AXIS; ++i) {
+            vec2 uv = (blockOriginPx + (vec2(i, j) + 0.5) * spacingPx) * inTexel;
+            meanCurrent += luma(CURRENT, uv);
+            meanPrevious += luma(PREVIOUS, uv);
+        }
+    }
+    float gain = mix(1.0, meanCurrent / max(meanPrevious, MIN_MEAN_LUMA * float(SAMPLES_PER_AXIS * SAMPLES_PER_AXIS)),
+                     clamp(uIlluminationComp, 0.0, 1.0));
+
+    // Pass 2: Lucas-Kanade sums.
     float sIxx = 0.0, sIxy = 0.0, sIyy = 0.0, sIxt = 0.0, sIyt = 0.0;
     for (int j = 0; j < SAMPLES_PER_AXIS; ++j) {
         for (int i = 0; i < SAMPLES_PER_AXIS; ++i) {
@@ -54,7 +78,7 @@ void main()
             // Divide by the spacing so gradients are per pixel, giving v in pixels.
             float Ix = (luma(CURRENT, uv + dx) - luma(CURRENT, uv - dx)) / (2.0 * spacingPx.x);
             float Iy = (luma(CURRENT, uv + dy) - luma(CURRENT, uv - dy)) / (2.0 * spacingPx.y);
-            float It = luma(CURRENT, uv) - luma(PREVIOUS, uv);
+            float It = luma(CURRENT, uv) - gain * luma(PREVIOUS, uv);
             sIxx += Ix * Ix;  sIxy += Ix * Iy;  sIyy += Iy * Iy;
             sIxt += Ix * It;  sIyt += Iy * It;
         }

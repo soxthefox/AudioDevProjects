@@ -20,6 +20,8 @@ OSC sent to TouchDesigner (default 127.0.0.1:9000), one bundle per hop:
 
 OSC received (default port 9001), for live tuning from TouchDesigner:
     /moshviz/param/<name> <float>          any field of mapping.MappingParams
+    /moshviz/clip/start <seconds>          with --play: loop from here
+    /moshviz/clip/end <seconds>            with --play: loop back at this point (0 = file end)
 """
 
 from __future__ import annotations
@@ -75,14 +77,36 @@ def build_bundle(features: Features, rows: np.ndarray, seq: int,
     return bundle.build()
 
 
-class ParamServer:
-    """Receives /moshviz/param/<name> messages and updates MappingParams in place."""
+class ClipWindow:
+    """Trim points for --play, set live over OSC. end_s <= start_s means 'to the end'."""
 
-    def __init__(self, params: MappingParams, host: str, port: int):
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.start_s = 0.0
+        self.end_s = 0.0
+
+    def set(self, name: str, seconds: float) -> None:
+        with self._lock:
+            setattr(self, f"{name}_s", max(0.0, seconds))
+
+    def bounds(self, total_frames: int, sample_rate: float, min_frames: int) -> tuple[int, int]:
+        """(start, end) in frames, clamped to the file, at least min_frames apart."""
+        with self._lock:
+            start = min(int(self.start_s * sample_rate), max(0, total_frames - min_frames))
+            end = int(self.end_s * sample_rate) if self.end_s > self.start_s else total_frames
+        return start, min(max(end, start + min_frames), total_frames)
+
+
+class ParamServer:
+    """Receives /moshviz/param/<name> (MappingParams) and /moshviz/clip/<start|end> (trim)."""
+
+    def __init__(self, params: MappingParams, host: str, port: int, clip: ClipWindow | None = None):
         self._params = params
         self._lock = threading.Lock()
+        self.clip = clip or ClipWindow()
         disp = dispatcher.Dispatcher()
         disp.map(f"{ADDRESS_PREFIX}/param/*", self._on_param)
+        disp.map(f"{ADDRESS_PREFIX}/clip/*", self._on_clip)
         self._server = osc_server.ThreadingOSCUDPServer((host, port), disp)
         threading.Thread(target=self._server.serve_forever, daemon=True).start()
         log.info("listening for parameters on %s:%d", host, port)
@@ -98,6 +122,15 @@ class ParamServer:
             log.info("param %s = %s", name, args[0])
         except KeyError:
             log.warning("unknown parameter %r (known: %s)", name, ", ".join(MappingParams.names()))
+
+    def _on_clip(self, address: str, *args: object) -> None:
+        name = address.rsplit("/", 1)[-1]
+        if name not in ("start", "end") or len(args) != 1 or not isinstance(args[0], (int, float)):
+            log.warning("ignoring %s %r", address, args)
+            return
+        if getattr(self.clip, f"{name}_s") != float(args[0]):
+            self.clip.set(name, float(args[0]))
+            log.info("clip %s = %.2f s", name, float(args[0]))
 
     def snapshot(self) -> MappingParams:
         with self._lock:
@@ -198,12 +231,13 @@ def stream_file(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
 
 
 def play_file(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
-              path: Path, loop: bool) -> None:
+              path: Path, loop: bool, clip: ClipWindow) -> None:
     """Play a file through the default output and analyse exactly what is played.
 
     The output callback is the clock: each hop it hands to the sound card is
     also queued for analysis, stamped with its position in the file. Video
-    that follows /moshviz/time therefore stays in sync with the sound.
+    that follows /moshviz/time therefore stays in sync with the sound, and
+    trimming the audio (``clip``) trims the video with it.
     """
     import sounddevice as sd
 
@@ -216,12 +250,15 @@ def play_file(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
         nonlocal position
         if status:
             log.warning("audio status: %s", status)
-        if position + frames > total:
+        start, end = clip.bounds(total, config.sample_rate, min_frames=frames)
+        if position < start:
+            position = start
+        if position + frames > end:
             if not loop:
                 outdata.fill(0.0)
                 finished.set()
                 raise sd.CallbackStop
-            position = 0
+            position = start
         chunk = audio[position:position + frames]
         outdata[:] = chunk
         _enqueue(blocks, Block(chunk.mean(axis=1).astype(np.float64), position / config.sample_rate))
@@ -267,7 +304,7 @@ def main() -> None:
     worker.start()
     try:
         if args.file and args.play:
-            play_file(blocks, config, args.file, args.loop)
+            play_file(blocks, config, args.file, args.loop, params.clip)
         elif args.file:
             stream_file(blocks, config, args.file, args.loop)
         else:

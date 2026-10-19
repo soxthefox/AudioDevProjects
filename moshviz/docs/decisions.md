@@ -300,6 +300,37 @@ rate (25.63 fps), for the same reason as the 30 fps camera lock.
 
 ---
 
+## D14. Illumination compensation in the motion pass; exposure lift for dark footage (decided)
+
+**Observed** on a show recording: the visuals reacted almost only when the
+white stage lights flashed. Two causes:
+
+1. *Brightness constancy fails under stage lighting.* Lucas-Kanade
+   assumes a point keeps its brightness between frames. A strobe scales
+   the whole frame's brightness, so the temporal derivative is large
+   everywhere and gets read as motion, while real movement in the dark
+   barely registers.
+2. *Edges below threshold.* The outline threshold was tuned on a lit
+   webcam image; in dark footage, gradients are too small.
+
+**Decision.**
+- `motion.glsl` estimates a per-block gain g = mean(current) /
+  mean(previous) over its 16 samples and differences the current frame
+  against g × previous. This is a standard robustness fix (normalising out
+  a local brightness change). `uIlluminationComp` blends it in. Evidence
+  (`td/reference/test_motion_reference.py`): a static scene with a 60 %
+  flash reads as more than 0.3 px of motion without compensation and
+  under 0.05 px with it, and a real (1, -0.5) px shift during the flash
+  is still recovered within 0.15 px.
+- `stylize.glsl` lifts luma before edge detection (`uExposure`,
+  `uGamma`), with per-source values: movie footage uses exposure 2,
+  gamma 0.6 and a lower threshold (`SOURCE_OVERRIDES` in
+  `scripts/uniforms.py`).
+- The motion block size follows the source resolution (`BLOCK_PX`), so
+  1920 × 1080 footage gets the same 8 px blocks as the camera, not 12 px.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

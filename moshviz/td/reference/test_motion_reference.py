@@ -39,3 +39,23 @@ def test_flat_region_stays_near_zero():
     flat = np.full((SIZE, SIZE), 0.5)
     v = block_motion(flat + 0.01, flat, BLOCK)  # brightness change, no texture
     assert np.max(np.abs(v)) < 1e-9
+
+
+FLASH_GAIN = 1.6  # a strobe making the frame 60 % brighter
+
+
+def test_flash_reads_as_motion_without_compensation():
+    v = interior(block_motion(texture() * FLASH_GAIN, texture(), BLOCK))
+    assert np.max(np.abs(v)) > 0.3
+
+
+def test_compensation_cancels_a_flash():
+    v = interior(block_motion(texture() * FLASH_GAIN, texture(), BLOCK, illumination_comp=1.0))
+    assert np.max(np.abs(v)) < 0.05
+
+
+def test_compensation_keeps_real_motion_during_a_flash():
+    shift = (1.0, -0.5)
+    v = interior(block_motion(texture(*shift) * FLASH_GAIN, texture(), BLOCK,
+                              regularisation=1e-6, illumination_comp=1.0))
+    np.testing.assert_allclose(np.median(v.reshape(-1, 2), axis=0), shift, atol=0.15)
