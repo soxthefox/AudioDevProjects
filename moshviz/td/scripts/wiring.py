@@ -4,6 +4,15 @@ Apply from the Textport (Dialogs -> Textport and DATs):
 
     exec(open(project.folder + '/scripts/wiring.py').read())
 
+Movie clock (movie mode), MOSHVIZ_CLOCK:
+  'audio'  (default) the movie follows the service's playback position, so
+           the clip's own sound drives the visuals (service --file X --play).
+  'free'   the movie plays and loops by itself, silently; the visuals react
+           to whatever the service listens to (a mic, or computer audio via
+           a loopback device such as BlackHole). Clip start/end do not apply.
+
+    MOSHVIZ_CLOCK = 'free'; exec(open(project.folder + '/scripts/wiring.py').read())
+
 To switch the input, set MOSHVIZ_SOURCE first (it stays set for later runs
 in the same TouchDesigner session):
 
@@ -65,7 +74,9 @@ MOVIE_SIZE = (1280, 720)   # IMG_1422_2.MOV is 1920 x 1080, but the Non-Commerci
 HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
 
+CLOCK = globals().get('MOSHVIZ_CLOCK', 'audio')   # 'audio' or 'free' (movie mode only)
 USE_MOVIE = SOURCE == 'movie'
+FREE_CLOCK = USE_MOVIE and CLOCK == 'free'
 VIDEO = 'clip_xform' if USE_MOVIE else 'mp_video'
 SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
 SOURCE_SIZE = MOVIE_SIZE if USE_MOVIE else CAMERA_SIZE
@@ -138,7 +149,12 @@ HISTORY_SETTINGS = {
 SETTINGS = {
     'history_image': HISTORY_SETTINGS,
     'history_mask': HISTORY_SETTINGS,
-    'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
+    # Free clock: the movie plays and loops by itself; 'index' set back to a
+    # constant so the audio-clock expression is removed. Audio clock: the
+    # movie shows the frame at the playback position (see EXPRESSIONS).
+    'movie': ({'file': MOVIE_FILE, 'playmode': 'sequential', 'play': True, 'index': 0}
+              if FREE_CLOCK else
+              {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'}),
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
     'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},
     'motion': {'outputresolution': 'custom',
@@ -157,7 +173,7 @@ _CONTROL = "op('controls').par."
 EXPRESSIONS = {
     'history_image': HISTORY_EXPRESSIONS,
     'history_mask': HISTORY_EXPRESSIONS,
-    'movie': {'index': '{0}.eval() if {0} is not None else 0'.format(_TIME)},
+    'movie': {} if FREE_CLOCK else {'index': '{0}.eval() if {0} is not None else 0'.format(_TIME)},
     'clip_timing': {'const0value': _CONTROL + 'Clipstart',
                     'const1value': _CONTROL + 'Clipend'},
     'clip_xform': {'sx': _CONTROL + 'Zoom', 'sy': _CONTROL + 'Zoom',
@@ -292,6 +308,9 @@ def apply(network=NETWORK):
     if SOURCE not in ('camera', 'movie'):
         print("wiring: MOSHVIZ_SOURCE must be 'camera' or 'movie', not {!r}".format(SOURCE))
         return
+    if CLOCK not in ('audio', 'free'):
+        print("wiring: MOSHVIZ_CLOCK must be 'audio' or 'free', not {!r}".format(CLOCK))
+        return
     _check_cook_rate()
     _create_missing(network)
     _check_controls(network)
@@ -300,8 +319,9 @@ def apply(network=NETWORK):
     _check_clip_timing(network)   # rows must exist before their expressions are set
     _check_settings(network)
     _check_bypass(network)
-    print('wiring: source {}, checked {} operators'.format(
-        SOURCE, len(set(WIRED) | set(PARS) | set(CREATE))))
+    print('wiring: source {}{}, checked {} operators'.format(
+        SOURCE, ' (clock {})'.format(CLOCK) if USE_MOVIE else '',
+        len(set(WIRED) | set(PARS) | set(CREATE))))
 
 
 apply()
