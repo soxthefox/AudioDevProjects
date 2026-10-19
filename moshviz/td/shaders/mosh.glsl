@@ -93,6 +93,11 @@ void main()
     vec2 motionUV = blockMotionPx(block) * uTD2DInfos[FEEDBACK].res.xy;
     // Pull from where the content was last frame: backward warp of the old output.
     vec4 stale = texture(sTD2DInputs[FEEDBACK], uv - motionUV);
+    // A single NaN/Inf in a feedback loop never washes out (any mix with it is
+    // NaN) and shows as black forever. Fall back to the live pixel instead.
+    if (any(isnan(stale)) || any(isinf(stale))) {
+        stale = live;
+    }
     vec4 moshed = mix(stale, live, uRefresh);
 
     vec4 background = mix(live, moshed, moshWeight(stripAmount(uv.y), block));
