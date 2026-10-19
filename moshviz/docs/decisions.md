@@ -55,12 +55,33 @@ the table here and re-fit the floor and ceiling.
 
 ---
 
-## D2. Camera path (open)
+## D2. Camera path: webcam + MediaPipe for now, Kinect deferred (provisional)
 
-Kinect v1 through libfreenect, or a webcam with MediaPipe segmentation. See
-`capture/README.md` for the one-day spike and the criteria for switching.
+Alternatives: Kinect v1 through libfreenect (depth mask, needs Homebrew
+drivers and a bridge into TouchDesigner on Apple Silicon), or a webcam
+with MediaPipe segmentation.
 
-## D3. Transport into TouchDesigner (open)
+**Decision (19 Oct 2026).** Webcam + the MediaPipe TouchDesigner plugin,
+chosen so the rest of the piece could be built and tuned without a
+hardware spike. It runs segmentation on the GPU inside TouchDesigner and
+provides the mask *and* the exact frame it was computed from
+(`original_video`), so picture and mask cannot drift apart. The shaders
+only see "a white-is-subject texture", so a Kinect depth mask can replace
+it later without other changes.
+
+**Observed.** The plugin enables every model by default (face, hands,
+pose, objects, classification, embeddings); only segmentation is used,
+so `scripts/mediapipe_settings.py` turns the rest off. Its
+"background only" mode outputs a format that its own
+`image_segmentation` decoder cannot read (outputs freeze), so the normal
+multiclass mode is kept and `selfie_mask` is used. Segmentation sometimes
+misses fast-moving hands; the clones pass's lighten blend (D12) hides
+that.
+
+**Open.** Kinect depth would give cleaner edges and work in the dark, and
+it is the original plan (`capture/README.md`).
+
+## D3. Transport into TouchDesigner (open; not needed while MediaPipe runs inside TouchDesigner)
 
 Syphon, NDI, or raw frames into a Script TOP. To be decided by the spike,
 comparing measured latency and frame rate.
