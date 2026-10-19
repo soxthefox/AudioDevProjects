@@ -386,6 +386,22 @@ is needed.
 
 ---
 
+## D16. Fixed output canvas with mirror fill (decided)
+
+The output is always 1280 × 720 (the licence maximum), whatever the
+source's shape. A final `frame` pass fits the image inside the canvas and
+fills the remaining space with mirrored copies: coordinates outside the
+image are folded back with a triangle wave, 1 − |mod(x, 2) − 1|, so
+copies alternate between flipped and unflipped and every seam joins
+without an edge. Copies fade geometrically with distance, keeping the
+centre the focus. An optional symmetry switch mirrors the left half onto
+the right; combined with the datamosh and the motion glow, it gives a
+kaleidoscope look. Mirroring was chosen over blurred or stretched
+fill because it continues the image's own motion and colour into the
+margins, and its symmetry suits the visuals.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

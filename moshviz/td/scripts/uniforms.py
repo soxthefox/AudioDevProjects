@@ -29,6 +29,13 @@ UNIFORMS = {
         'uSaturation': _CONTROL + 'Saturation',
         'uSoften': _CONTROL + 'Soften',
     },
+    # Output canvas follows the controls panel (toggles arrive as 0 / 1).
+    'frame': {
+        'uFitZoom': _CONTROL + 'Fitzoom',
+        'uMirrorFill': 'float(' + _CONTROL + 'Mirrorfill)',
+        'uMirrorFade': _CONTROL + 'Mirrorfade',
+        'uSymmetry': 'float(' + _CONTROL + 'Symmetry)',
+    },
     'motion_mask': {
         'uSpeedLowPx': (0.4,),
         'uSpeedHighPx': (1.5,),

@@ -70,6 +70,10 @@ MOVIE_DURATION_S = 24.97   # IMG_1423_cfr30.mov, as printed by tools/intra_frame
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
 # footage, which made the mosh and glow visibly chunkier.
+# The output canvas is fixed, whatever the source's shape (the frame pass
+# fits the image and fills the rest with mirrored copies).
+OUTPUT_SIZE = (1280, 720)
+
 CAMERA_BLOCK_PX = 8
 MOVIE_BLOCK_PX = 4   # finer for footage shown large; 8 px tiles read as pixelation
 CAMERA_SIZE = (1280, 720)
@@ -105,6 +109,8 @@ CREATE = {
     'prep_pixel': 'textDAT',    # holds prep.glsl, synced to the file
     'motion_mask': 'glslTOP',   # "whatever moves" mask for clones (shaders/motion_mask.glsl)
     'motion_mask_pixel': 'textDAT',
+    'frame': 'glslTOP',         # fixed output canvas with mirror fill (shaders/frame.glsl)
+    'frame_pixel': 'textDAT',
 }
 
 # Custom parameters on `controls`: name -> (kind, label, default, slider range).
@@ -126,6 +132,11 @@ CONTROLS = {
     'Gamma': ('float', 'Input gamma', 1.0, (0.2, 4.0)),
     'Saturation': ('float', 'Input saturation', 1.0, (0.0, 2.0)),
     'Soften': ('float', 'Input soften (denoise)', 0.0, (0.0, 1.0)),
+    # Output canvas (frame pass).
+    'Mirrorfill': ('toggle', 'Mirror fill', True, None),
+    'Symmetry': ('toggle', 'Symmetry', False, None),
+    'Mirrorfade': ('float', 'Mirror fade', 0.6, (0.0, 1.0)),
+    'Fitzoom': ('float', 'Fit zoom', 1.0, (0.5, 3.0)),
 }
 
 # Channels of clip_timing, sent to the service as OSC addresses.
@@ -146,7 +157,8 @@ WIRED = {
     'motion_mask': ['motion'],
     'clones': ['look', 'history_image', 'history_mask'],
     'clones_switch': ['look', 'clones'],   # index 0 = clones off, 1 = on
-    'out': ['clones_switch'],
+    'frame': ['clones_switch'],
+    'out': ['frame'],
     'clip_xform': ['movie'],
     'clip_osc': ['clip_timing'],
 }
@@ -162,6 +174,7 @@ PARS = {
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
     'prep': {'pixeldat': 'prep_pixel'},                        # GLSL TOP shader source
     'motion_mask': {'pixeldat': 'motion_mask_pixel'},          # GLSL TOP shader source
+    'frame': {'pixeldat': 'frame_pixel'},                      # GLSL TOP shader source
 }
 
 # Constant settings of created operators.
@@ -182,6 +195,9 @@ SETTINGS = {
     'prep_pixel': {'file': 'shaders/prep.glsl', 'syncfile': True},
     'prep': {'format': 'rgba16float'},
     'motion_mask_pixel': {'file': 'shaders/motion_mask.glsl', 'syncfile': True},
+    'frame_pixel': {'file': 'shaders/frame.glsl', 'syncfile': True},
+    'frame': {'format': 'rgba16float', 'outputresolution': 'custom',
+              'resolutionw': OUTPUT_SIZE[0], 'resolutionh': OUTPUT_SIZE[1]},
     'motion_mask': {'format': 'rgba16float', 'outputresolution': 'custom',
                     'resolutionw': SOURCE_SIZE[0], 'resolutionh': SOURCE_SIZE[1]},
     'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},

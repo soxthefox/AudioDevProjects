@@ -371,6 +371,10 @@ has everything in one place:
 | **Rotate (deg)** | rotates the footage |
 | **Input exposure / brightness / contrast / gamma / saturation** | grade the input *before* motion and outline analysis (the `prep` pass): more contrast gives the analysis more to find |
 | **Input soften (denoise)** | 0 to 1; blurs sensor noise away so dark grain is not mistaken for motion or edges |
+| **Mirror fill** | fills the fixed 1280 × 720 canvas around the image with mirrored copies (off = black bars) |
+| **Mirror fade** | brightness of each copy further out (1 = all equal) |
+| **Symmetry** | mirrors the left half onto the right: a kaleidoscope look |
+| **Fit zoom** | 1 = whole image fits the canvas; above 1 zooms in, mirrors continue it |
 
 `clip_timing`, `clip_xform` and `clones_switch` read these through
 expressions, so you never need to edit those nodes directly.
