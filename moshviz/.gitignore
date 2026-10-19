@@ -12,3 +12,5 @@ renders/
 *.mp4
 # Third-party TouchDesigner plugins (large; see README for where to get them)
 td/vendor/
+# TouchDesigner numbered save backups (moshviz.1.toe, ...)
+td/*.[0-9]*.toe
