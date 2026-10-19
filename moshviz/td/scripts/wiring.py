@@ -24,12 +24,14 @@ SOURCE picks the input:
             audio clock: run the service with --file <same file> --play, and
             the movie shows the frame at /moshviz/time.
 
-Clip controls (movie mode), edited by hand in TouchDesigner:
-  clip_xform   Transform TOP between the movie and `cam`: zoom, position and
-               rotation of the footage. Bypass it to reset.
-  clip_timing  Constant CHOP with moshviz/clip/start and moshviz/clip/end, in
-               seconds (end 0 = file end). clip_osc sends them to the service,
-               which loops the audio between them, and the video follows.
+Control panel: click the `controls` node; its Controls page has
+  Clones                 on/off switch for the clones pass (clones_switch)
+  Clip start, Clip end   seconds; the service loops the audio between them
+                         and the video follows (end 0 = file end)
+  Zoom, Offset X/Y,      placement of the footage (movie mode)
+  Rotate
+The script creates these parameters once and never overwrites their values.
+clip_timing, clip_xform and clones_switch read them through expressions.
 
 Paths in WIRED and PARS are relative to NETWORK. Operators in CREATE are
 made if missing (the others are built by hand, see WALKTHROUGH.md).
@@ -76,6 +78,21 @@ CREATE = {
     'clip_xform': 'transformTOP',
     'clip_timing': 'constantCHOP',
     'clip_osc': 'oscoutCHOP',
+    'controls': 'baseCOMP',
+    'clones_switch': 'switchTOP',
+}
+
+# Custom parameters on `controls`: name -> (kind, label, default).
+# TouchDesigner requires custom parameter names to start with a capital
+# letter followed by lowercase letters or digits.
+CONTROLS = {
+    'Clones': ('toggle', 'Clones', False),
+    'Clipstart': ('float', 'Clip start (s)', 0.0),
+    'Clipend': ('float', 'Clip end (s, 0 = end)', 0.0),
+    'Zoom': ('float', 'Zoom', 1.0),
+    'Offsetx': ('float', 'Offset X', 0.0),
+    'Offsety': ('float', 'Offset Y', 0.0),
+    'Rotate': ('float', 'Rotate (deg)', 0.0),
 }
 
 # Channels of clip_timing, sent to the service as OSC addresses.
@@ -93,7 +110,8 @@ WIRED = {
     'history_image': ['look'],
     'history_mask': [SUBJECT_MASK],
     'clones': ['look', 'history_image', 'history_mask'],
-    'out': ['clones'],
+    'clones_switch': ['look', 'clones'],   # index 0 = clones off, 1 = on
+    'out': ['clones_switch'],
     'clip_xform': ['movie'],
     'clip_osc': ['clip_timing'],
 }
@@ -133,14 +151,21 @@ SETTINGS = {
 #    service sends it).
 _TIME = "op('oscin1')['moshviz/time']"
 HISTORY_EXPRESSIONS = {'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAMES)}
+_CONTROL = "op('controls').par."
 EXPRESSIONS = {
     'history_image': HISTORY_EXPRESSIONS,
     'history_mask': HISTORY_EXPRESSIONS,
     'movie': {'index': '{0}.eval() if {0} is not None else 0'.format(_TIME)},
+    'clip_timing': {'const0value': _CONTROL + 'Clipstart',
+                    'const1value': _CONTROL + 'Clipend'},
+    'clip_xform': {'sx': _CONTROL + 'Zoom', 'sy': _CONTROL + 'Zoom',
+                   'tx': _CONTROL + 'Offsetx', 'ty': _CONTROL + 'Offsety',
+                   'rotate': _CONTROL + 'Rotate'},
+    'clones_switch': {'index': 'int(' + _CONTROL + 'Clones)'},
 }
 
-# Operators bypassed in the current SOURCE mode (bypassed TOPs pass input 0 through).
-BYPASSED = {'clones': USE_MOVIE}
+# Clones are switched by clones_switch now; make sure the old bypass is off.
+BYPASSED = {'clones': False}
 
 
 def _create_missing(network):
@@ -232,6 +257,28 @@ def _check_clip_timing(network):
             par.val = name
 
 
+def _check_controls(network):
+    """Create the control panel's custom parameters once; never touch their values."""
+    controls = op(network + '/controls')
+    if controls is None:
+        return
+    page = next((p for p in controls.customPages if p.name == 'Controls'), None)
+    if page is None:
+        page = controls.appendCustomPage('Controls')
+    for name, (kind, label, default) in CONTROLS.items():
+        if getattr(controls.par, name, None) is not None:
+            continue
+        print('wiring: controls gets {}'.format(label))
+        if kind == 'toggle':
+            par = page.appendToggle(name, label=label)[0]
+        else:
+            par = page.appendFloat(name, label=label)[0]
+        par.default = default
+        par.val = default
+    if USE_MOVIE and controls.par.Clones.eval():
+        print('wiring: note: clones need a performer mask; with a movie there is none, so they show nothing')
+
+
 def _check_cook_rate():
     rate = MOVIE_FPS if USE_MOVIE else CAMERA_FPS
     if abs(project.cookRate - rate) > 1e-3:
@@ -245,10 +292,11 @@ def apply(network=NETWORK):
         return
     _check_cook_rate()
     _create_missing(network)
+    _check_controls(network)
     _check_wiring(network)
     _check_pars(network)
+    _check_clip_timing(network)   # rows must exist before their expressions are set
     _check_settings(network)
-    _check_clip_timing(network)
     _check_bypass(network)
     print('wiring: source {}, checked {} operators'.format(
         SOURCE, len(set(WIRED) | set(PARS) | set(CREATE))))

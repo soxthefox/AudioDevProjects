@@ -109,11 +109,8 @@ off; the movie follows the audio clock):
 MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
 ```
 
-To unplug or plug in the clones pass:
-
-```python
-c = op('/project1/clones'); c.bypass = not c.bypass
-```
+Live controls (clones on/off, clip trim, zoom, offset, rotation) are on
+the **`controls`** node's parameter panel, on its Controls page.
 
 Building the network from scratch, step by step: [td/WALKTHROUGH.md](td/WALKTHROUGH.md).
 Compact reference: [td/README.md](td/README.md).

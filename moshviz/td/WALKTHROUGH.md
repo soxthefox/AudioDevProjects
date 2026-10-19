@@ -313,10 +313,9 @@ for a real crowd.
 ✅ Rows of copies of you, getting smaller and dimmer towards the horizon,
 each row moving a little later than the one in front.
 
-**Unplug / plug in:**
-```python
-c = op('/project1/clones'); c.bypass = not c.bypass; print('clones', 'off' if c.bypass else 'on')
-```
+**On / off:** click the **`controls`** node and flip **Clones** on its
+Controls page. (The wiring script creates the panel and a `clones_switch`
+that shows either `look` or `clones`.)
 Knobs (`clones` block in `scripts/uniforms.py`): `uRows` (0 to 10),
 `uColumns` (per side, 0 to 8), `uCloneSpacing`, `uRowDepth` (how fast rows
 shrink), `uHorizon` (vanishing-point height), `uFog` (fade with distance),
@@ -360,15 +359,19 @@ music: bass in the centre, highs at the edges.
    exec(open(project.folder + '/scripts/uniforms.py').read())
    ```
 
-**Clip controls** (created by the wiring script):
+**Control panel:** click the **`controls`** node. Its **Controls** page
+has everything in one place:
 
-- **`clip_xform`** (Transform TOP): zoom (**Scale**), position
-  (**Translate**) and **Rotate** of the footage in the frame. Edit it on its
-  parameter panel; bypass it to go back to the original framing.
-- **`clip_timing`** (Constant CHOP): `moshviz/clip/start` and
-  `moshviz/clip/end`, in seconds (end 0 = to the end of the file). The
-  service loops between them, and the video follows. Edit the values on
-  its parameter panel.
+| Control | What it does |
+|---|---|
+| **Clones** | on/off switch for the clones (they need a performer mask, so with a movie they show nothing) |
+| **Clip start (s)**, **Clip end (s, 0 = end)** | the part of the clip that loops; picture and sound together |
+| **Zoom** | 1 = original size, 1.5 = zoomed in |
+| **Offset X**, **Offset Y** | moves the footage, as a fraction of the frame (0.1 = 10 %) |
+| **Rotate (deg)** | rotates the footage |
+
+`clip_timing`, `clip_xform` and `clones_switch` read these through
+expressions, so you never need to edit those nodes directly.
 
 **Finer blocks:** set `BLOCK_PX` in `scripts/wiring.py` to 6 or 4 (default
 8) and re-run the wiring line.
