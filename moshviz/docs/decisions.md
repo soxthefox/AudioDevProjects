@@ -361,6 +361,22 @@ treated as movement.
 
 ---
 
+## D15. Input grading before analysis (decided)
+
+A `prep` GLSL pass sits between the source and `cam`, so the motion pass,
+the outline pass and everything downstream see the graded image. Its
+controls (exposure, brightness, contrast, gamma, saturation, soften) are
+on the `controls` panel and reach the shader through expressions, so they
+can be adjusted live while watching the output. Grading *before*
+analysis, rather than only in the final look, gives the motion and edge
+detectors larger brightness differences to work with on dark stage
+footage. Soften (a 3 × 3 box blur, blended in) suppresses sensor noise
+that would otherwise read as motion or edges. The pass, its shader text
+DAT and the wiring are created by `scripts/wiring.py`, so no hand setup
+is needed.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

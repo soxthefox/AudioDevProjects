@@ -369,6 +369,8 @@ has everything in one place:
 | **Zoom** | 1 = original size, 1.5 = zoomed in |
 | **Offset X**, **Offset Y** | moves the footage, as a fraction of the frame (0.1 = 10 %) |
 | **Rotate (deg)** | rotates the footage |
+| **Input exposure / brightness / contrast / gamma / saturation** | grade the input *before* motion and outline analysis (the `prep` pass): more contrast gives the analysis more to find |
+| **Input soften (denoise)** | 0 to 1; blurs sensor noise away so dark grain is not mistaken for motion or edges |
 
 `clip_timing`, `clip_xform` and `clones_switch` read these through
 expressions, so you never need to edit those nodes directly.

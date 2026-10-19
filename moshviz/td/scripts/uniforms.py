@@ -17,7 +17,18 @@ strings are Python expressions (for example 'absTime.frame').
 
 NETWORK = '/project1'
 
+_CONTROL = "op('controls').par."
+
 UNIFORMS = {
+    # Input grading follows the controls panel (wiring.py creates it).
+    'prep': {
+        'uExposure': _CONTROL + 'Exposure',
+        'uBrightness': _CONTROL + 'Brightness',
+        'uContrast': _CONTROL + 'Contrast',
+        'uGamma': _CONTROL + 'Gamma',
+        'uSaturation': _CONTROL + 'Saturation',
+        'uSoften': _CONTROL + 'Soften',
+    },
     'motion': {
         'uRegularisation': (0.001,),
         'uIlluminationComp': (1.0,),

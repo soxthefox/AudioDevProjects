@@ -97,6 +97,8 @@ CREATE = {
     'clip_osc': 'oscoutCHOP',
     'controls': 'baseCOMP',
     'clones_switch': 'switchTOP',
+    'prep': 'glslTOP',          # input grading (shaders/prep.glsl), before all analysis
+    'prep_pixel': 'textDAT',    # holds prep.glsl, synced to the file
 }
 
 # Custom parameters on `controls`: name -> (kind, label, default).
@@ -110,6 +112,13 @@ CONTROLS = {
     'Offsetx': ('float', 'Offset X', 0.0),
     'Offsety': ('float', 'Offset Y', 0.0),
     'Rotate': ('float', 'Rotate (deg)', 0.0),
+    # Input grading (prep pass): applied before motion and outline analysis.
+    'Exposure': ('float', 'Input exposure', 1.0),
+    'Brightness': ('float', 'Input brightness', 0.0),
+    'Contrast': ('float', 'Input contrast', 1.0),
+    'Gamma': ('float', 'Input gamma', 1.0),
+    'Saturation': ('float', 'Input saturation', 1.0),
+    'Soften': ('float', 'Input soften (denoise)', 0.0),
 }
 
 # Channels of clip_timing, sent to the service as OSC addresses.
@@ -117,7 +126,8 @@ CLIP_CHANNELS = ('moshviz/clip/start', 'moshviz/clip/end')
 
 # Wired inputs, in input order. A GLSL TOP takes at most three wired inputs.
 WIRED = {
-    'cam': [VIDEO],
+    'prep': [VIDEO],
+    'cam': ['prep'],
     'prev_cam': ['cam'],
     'motion': ['cam', 'prev_cam'],
     'stylize': ['cam', 'motion', SUBJECT_MASK],
@@ -142,6 +152,7 @@ PARS = {
     'mosh': {'tops': 'rows motion'},                           # GLSL inputs 3 and 4
     'clones': {'tops': SUBJECT_MASK},                          # live mask, input 3
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
+    'prep': {'pixeldat': 'prep_pixel'},                        # GLSL TOP shader source
 }
 
 # Constant settings of created operators.
@@ -159,6 +170,8 @@ SETTINGS = {
     # can cook the movie more than once per frame, so it played too fast.)
     'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
+    'prep_pixel': {'file': 'shaders/prep.glsl', 'syncfile': True},
+    'prep': {'format': 'rgba16float'},
     'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},
     'motion': {'outputresolution': 'custom',
                'resolutionw': SOURCE_SIZE[0] // BLOCK_PX,
