@@ -88,7 +88,7 @@ down gives **green**.
 ❌ If there's a red X, click **i** on `motion` and send the error, or copy the text of the DAT ending in `_info` next to
 `motion` and send it to Claude.
 
-## Step 4: Audio → row texture
+## Step 4: Audio → row texture ✔ done
 
 1. Start the feature service in a terminal and leave it running (Ctrl+C
    stops it):
@@ -107,8 +107,9 @@ down gives **green**.
 4. Tab → TOP → **CHOP to TOP**. Rename it **`rows`**. Set **CHOP** to
    `rows_sel`, and **Data Format** to *R*. On the Common page, set **Pixel
    Format** to 32-bit float.
-   ✅ Click **i**: the resolution is **1 × 24** (report it if it shows
-   24 × 1). The preview flickers with the audio.
+   ✅ Click **i**: the resolution is **1 × 24** (a vertical strip;
+   confirmed). The preview is shades of **red** pulsing with the audio,
+   because Data Format R uses only the red channel.
 
 ## Step 5: Stand-in subject mask
 
