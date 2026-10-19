@@ -216,6 +216,44 @@ Find your interface and the guitar's input (inputs count from 0), then:
 Replace `Scarlett` with part of your interface's name. If it reports a
 sample-rate error, add `--sample-rate 44100`.
 
+## Step 8: Subject mask with MediaPipe
+
+The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
+`capture/README.md` for where to get it).
+
+1. **Add the plugin** ✔ done. Drag `toxes/MediaPipe.tox` and
+   `toxes/image_segmentation.tox` from Finder into `/project1`. On each
+   node's **Common** page, **External .tox** should point at the file, and
+   **Enable External .tox** should be **On**, so the `.toe` stays small
+   (about 16 KB).
+2. **Pick the webcam** ✔ done. Choose it from the camera dropdown on the
+   MediaPipe node. It takes a few seconds the first time.
+3. **Find the mask.** It is a Script TOP called `seg_data` somewhere
+   inside the plugin. Paste this into the Textport:
+   ```python
+   [o.path for o in op('/project1').findChildren(name='seg_data')]
+   ```
+   It prints the mask's full path. Send it to Claude.
+4. **Turn off unused trackers.** On the MediaPipe node, find the **Face**,
+   **Hand** and **Pose** settings and switch them **off**. Leave
+   segmentation **on**. They cost CPU and GPU time and are not used.
+5. **Bring the mask out.** Tab → TOP → **Select**, renamed **`mask`**.
+   Set its **TOP** parameter to the path from step 3.
+   ✅ A white silhouette of you on black (soft, grey edges are fine).
+6. **Use it.** In `mosh`, replace input 2 (`mask_stub`) with `mask`: drag
+   from `mask`'s output onto the connector that `mask_stub` uses (dropping
+   on a used connector replaces it). Or from the Textport:
+   ```python
+   p = '/project1/'; op(p + 'mosh').setInputs([op(p + n) for n in ('cam', 'mosh_fb', 'mask')])
+   ```
+   ✅ With music playing and you moving, the background moshes and your
+   body stays clean. If edges look harsh, raise `uMaskFeather` in
+   `scripts/uniforms.py`.
+7. **Line up picture and mask** (optional, next session). If the mask
+   lags behind or is offset from your body, feed `cam` from the MediaPipe
+   node's video output instead of `video_in`, so both come from the same
+   frames.
+
 ## Send back to Claude
 
 1. Which ✅ checks passed, plus screenshots of the network and of `out`
