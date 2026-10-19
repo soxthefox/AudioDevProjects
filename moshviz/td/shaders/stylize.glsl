@@ -24,7 +24,13 @@
 //      are bright and static ones dim: the view is about movement, not the room.
 //   3. Optional dot grid, so outlines read as scanner points.
 //   4. Line colour from the mask: one colour for the performer, one for the
-//      room, a depth-like separation without a depth camera.
+//      room, a depth-like separation without a depth camera. uLineTint blends
+//      the line colour towards the hue of the scene at that point, so stage
+//      lighting colours the outlines.
+//   5. Light layer: only pixels brighter than uLightThreshold (spotlights,
+//      strobes, LEDs), in their original colour, averaged over a ring of taps
+//      for a soft glow. It brings stage lighting back without bringing back
+//      the photographic image.
 
 uniform float uExposure;        // luma gain before edge detection (1 = unchanged; e.g. 2 for dark footage)
 uniform float uGamma;           // luma gamma after exposure (1 = unchanged; < 1 lifts shadows, e.g. 0.6)
@@ -41,6 +47,10 @@ uniform float uPointMix;        // 0 = continuous lines, 1 = lines made only of 
 uniform float uImageLevel;      // how much of the (exposure-lifted) image shows under the lines (0 = none)
 uniform vec3  uSubjectColour;   // outline colour on the performer
 uniform vec3  uRoomColour;      // outline colour on everything else
+uniform float uLineTint;        // 0 = fixed line colours, 1 = lines take the scene's local hue
+uniform float uLightLevel;      // strength of the light layer (0 = off)
+uniform float uLightThreshold;  // raw luma above which a pixel counts as a light (e.g. 0.45)
+uniform float uLightGlowPx;     // radius of the light glow in pixels (e.g. 8)
 
 const int CAMERA = 0;
 const int MOTION = 1;
@@ -50,6 +60,9 @@ const float SOBEL_UNIT_STEP = 4.0;  // Sobel response to a 0 -> 1 step; dividing
 const float EDGE_SOFTNESS = 0.1;    // width of the threshold ramp, so lines fade in rather than pop
 const float DOT_RADIUS = 0.3;       // dot radius as a fraction of the grid cell
 const float DOT_SOFTNESS = 0.1;     // anti-aliasing width of the dot edge, in cell units
+const float LIGHT_SOFTNESS = 0.15;  // width of the light threshold ramp, in luma
+const int GLOW_TAPS = 8;            // taps on the glow ring (plus the centre)
+const float TAU = 6.28318530718;
 
 out vec4 fragColor;
 
@@ -99,6 +112,34 @@ float dotGrid(vec2 uv)
     return 1.0 - smoothstep(DOT_RADIUS, DOT_RADIUS + DOT_SOFTNESS, distanceToDot);
 }
 
+// The pixel's colour if it is bright enough to count as a light, else black.
+vec3 lightAt(vec2 uv)
+{
+    vec3 rgb = texture(sTD2DInputs[CAMERA], uv).rgb;
+    float y = dot(rgb, REC709_LUMA);
+    return rgb * smoothstep(uLightThreshold, uLightThreshold + LIGHT_SOFTNESS, y);
+}
+
+// Lights plus a soft glow: the centre and a ring of GLOW_TAPS taps at
+// uLightGlowPx, averaged (a cheap blur, enough for a halo).
+vec3 lightGlow(vec2 uv)
+{
+    vec2 radius = uLightGlowPx * uTD2DInfos[CAMERA].res.xy;
+    vec3 sum = lightAt(uv);
+    for (int i = 0; i < GLOW_TAPS; ++i) {
+        float angle = TAU * float(i) / float(GLOW_TAPS);
+        sum += lightAt(uv + radius * vec2(cos(angle), sin(angle)));
+    }
+    return sum / float(GLOW_TAPS + 1);
+}
+
+// Hue of the scene at uv, at full brightness (largest channel = 1).
+vec3 sceneHue(vec2 uv)
+{
+    vec3 rgb = lifted(texture(sTD2DInputs[CAMERA], uv).rgb);
+    return rgb / max(max(rgb.r, max(rgb.g, rgb.b)), 1e-3);
+}
+
 void main()
 {
     vec2 uv = vUV.st;
@@ -110,7 +151,9 @@ void main()
 
     float subject = texture(sTD2DInputs[MASK], uv).r;
     vec3 lineColour = mix(uRoomColour, uSubjectColour, subject);
+    lineColour = mix(lineColour, sceneHue(uv), clamp(uLineTint, 0.0, 1.0));
     vec3 photo = lifted(texture(sTD2DInputs[CAMERA], uv).rgb) * uImageLevel;
+    vec3 lights = uLightLevel > 0.0 ? lightGlow(uv) * uLightLevel : vec3(0.0);
 
-    fragColor = TDOutputSwizzle(vec4(photo + lineColour * brightness, 1.0));
+    fragColor = TDOutputSwizzle(vec4(photo + lights + lineColour * brightness, 1.0));
 }

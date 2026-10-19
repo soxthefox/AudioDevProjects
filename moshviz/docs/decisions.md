@@ -347,8 +347,17 @@ edges passed even with exposure lifted. Fixed gains are a poor fit for
 stage light (spotlights next to near-black), so `stylize.glsl` can divide
 the gradient by the local mean brightness (Weber contrast) plus a noise
 floor (`uRelativeEdges`, `uContrastFloor`). Edges in shadows then count as
-much as edges under a spotlight. Movie mode uses relative edges and shows
-the lifted footage faintly under the outlines (`uImageLevel` 0.25).
+much as edges under a spotlight. Movie mode uses relative edges.
+
+**Follow-up: light, not photo.** A faint lifted copy of the footage
+(`uImageLevel`) brought the room back, which the style avoids. Instead,
+`stylize.glsl` keeps only pixels above a brightness threshold
+(spotlights, strobes, LEDs) in their own colour, with a cheap ring-tap
+glow, and can tint the outlines with the scene's local hue
+(`uLineTint`). Stage lighting reads as light and colour, and because it
+is drawn before the mosh, lights smear into trails. The motion pass
+keeps its flash compensation, so flashes are visible but are not
+treated as movement.
 
 ---
 

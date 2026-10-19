@@ -50,6 +50,10 @@ UNIFORMS = {
         'uImageLevel': (0.0,),
         'uSubjectColour': (1.0, 0.95, 0.9),
         'uRoomColour': (0.2, 0.75, 1.0),
+        'uLineTint': (0.0,),
+        'uLightLevel': (0.0,),
+        'uLightThreshold': (0.45,),
+        'uLightGlowPx': (8.0,),
     },
     'clones': {
         'uRows': (5.0,),
@@ -89,7 +93,11 @@ SOURCE_OVERRIDES = {
             'uRelativeEdges': (1.0,),
             'uContrastFloor': (0.05,),
             'uEdgeThreshold': (0.25,),
-            'uImageLevel': (0.25,),
+            'uImageLevel': (0.0,),    # no photographic overlay
+            # Stage lighting comes back as light only: the bright parts in
+            # their own colour, with a glow, and lines tinted by the scene.
+            'uLightLevel': (1.2,),
+            'uLineTint': (0.5,),
         },
     },
 }
