@@ -232,6 +232,24 @@ Lucas-Kanade motion estimates far less reliable.
 
 ---
 
+## D12. Clones as a separate, bypassable final pass (decided)
+
+Copies of the performer, cut out with the subject mask, are placed on
+alternating sides, each rank smaller and dimmer (scaled around the bottom
+edge so they share a floor line). They are a separate GLSL pass after
+`look` rather than part of `mosh`, so they can be unplugged with
+TouchDesigner's bypass flag. A bypassed TOP passes its first input
+through, so no rewiring is needed. This matters for the intended
+contexts: with one performer, clones turn a solo into a group; on a
+real dance floor with many people, the mask already contains many
+figures and clones would only clutter the frame.
+
+Clones copy the *finished* image, so each clone carries the same
+outlines and glow as the performer. Future option: time-delayed clones
+(a canon), using a Cache TOP of past frames.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

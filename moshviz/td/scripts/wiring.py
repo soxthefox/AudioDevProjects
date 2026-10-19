@@ -24,7 +24,8 @@ WIRED = {
     'mosh_fb': ['stylize'],
     'mosh': ['stylize', 'mosh_fb', 'mask'],
     'look': ['mosh', 'motion'],
-    'out': ['look'],
+    'clones': ['look', 'mask'],   # optional; bypass the node to unplug it
+    'out': ['clones'],
 }
 
 # Parameters that refer to other operators.

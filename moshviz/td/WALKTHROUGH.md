@@ -290,6 +290,34 @@ still things vanish; `uPointMix` 1 gives dotted, scanner-like lines;
 `uEdgeThreshold` higher removes noise sparkle; `uEdgeScalePx` higher
 gives thicker lines; `uImageLevel` 0.1 brings back a faint photo.
 
+## Step 10: Clones (optional, plug in / plug out)
+
+Copies of you on alternating sides. Each one further out is smaller and
+dimmer, and they all move exactly as you do. Meant for a single performer;
+unplug it for a crowd.
+
+1. Tab → TOP → **GLSL**, renamed **`clones`**. In its `_pixel` DAT, set
+   **File** to `shaders/clones.glsl`, with Sync to File on. **Common** page:
+   **Pixel Format** 16-bit float (RGBA).
+2. Wire it in (puts `clones` between `look` and `out`) and set its values:
+   ```python
+   exec(open(project.folder + '/scripts/wiring.py').read())
+   ```
+   ```python
+   exec(open(project.folder + '/scripts/uniforms.py').read())
+   ```
+
+✅ Four copies of you, two on each side, smaller and dimmer further out,
+moving with you. You stay in front.
+
+**Unplug / plug in:**
+```python
+c = op('/project1/clones'); c.bypass = not c.bypass; print('clones', 'off' if c.bypass else 'on')
+```
+Knobs (`clones` block in `scripts/uniforms.py`): `uCloneCount` (0 to 8),
+`uCloneSpacing` (distance apart), `uCloneScale` (1 = all the same size),
+`uCloneFade` (1 = all equally bright).
+
 ## If the network misbehaves
 
 `scripts/wiring.py` holds every connection in the network. It reports any

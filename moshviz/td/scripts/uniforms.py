@@ -43,6 +43,13 @@ UNIFORMS = {
         'uSubjectColour': (1.0, 0.95, 0.9),
         'uRoomColour': (0.2, 0.75, 1.0),
     },
+    'clones': {
+        'uCloneCount': (4.0,),
+        'uCloneSpacing': (0.28,),
+        'uCloneScale': (0.85,),
+        'uCloneFade': (0.7,),
+        'uMaskFeather': (0.1,),
+    },
     'look': {
         # The stylize pass already sets the palette, so the grade is neutral.
         'uBrightness': (0.0,),
