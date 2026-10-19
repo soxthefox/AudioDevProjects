@@ -25,7 +25,17 @@ Sohum.
    distance band → Blur → Threshold again (this works like a soft erode)
    → mask input of `mosh`.
 
-## Fallback: webcam + MediaPipe
+## Current: webcam + MediaPipe plugin
+
+In use since 19 Oct 2026, ahead of the Kinect spike. The plugin is
+[torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner)
+v0.6.0. Download `release.zip` from its releases page and unzip it to
+`td/vendor/mediapipe-touchdesigner/`, which is gitignored (188 MB). It
+runs MediaPipe segmentation on the GPU inside TouchDesigner. Its mask
+(`seg_data`) replaces `mask_stub` as `mosh` input 2, and its video output
+feeds `cam`, so the mask and the picture come from the same frames.
+
+## Original fallback note: webcam + MediaPipe
 
 Switch to this if step 2 fails or the spike passes one day. A MediaPipe
 plugin for TouchDesigner exists (it runs MediaPipe inside a Web Render

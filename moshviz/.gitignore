@@ -10,3 +10,5 @@ recordings/
 renders/
 *.mov
 *.mp4
+# Third-party TouchDesigner plugins (large; see README for where to get them)
+td/vendor/
