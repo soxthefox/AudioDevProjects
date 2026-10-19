@@ -30,7 +30,9 @@ cd /Users/sohumdatta/repos/AudioDevProjects/.claude/worktrees/audio-reactive-dat
 - **Rename:** click the name label under a node and type. Use the names
   given here exactly.
 - **Bigger preview:** right-click a node → **View…**
-- **Errors:** a red X on a node. Middle-click the node to read the error.
+- **Info and errors:** select a node and click the **i** icon at the top of the
+  parameter panel (or right-click → Info…). This shows the resolution and any
+  error message. On a mouse, middle-click does the same.
 - **Save often:** Cmd+S.
 
 ## Step 0: Project file ✔ done
@@ -43,12 +45,12 @@ folder is hidden because its name starts with a dot):
 /Users/sohumdatta/repos/AudioDevProjects/.claude/worktrees/audio-reactive-datamosh-432670/moshviz/td
 ```
 
-## Step 1: Camera
+## Step 1: Camera ✔ done
 
 1. Tab → TOP → **Video Device In**. If macOS asks, allow camera access.
 2. Tab → TOP → **Null**. Connect Video Device In → Null, and rename the
    Null to **`cam`**.
-3. Middle-click `cam` and note its **resolution** (for example 1280x720).
+3. Click the **i** icon for `cam` and note its **resolution**. Yours is **1280×720**.
 
 ✅ The `cam` thumbnail shows your camera image.
 
@@ -73,15 +75,14 @@ folder is hidden because its name starts with a dot):
    - input 1: `prev_cam` → `motion`
 4. On `motion`:
    - **Common** page: set **Output Resolution** to *Custom Resolution*
-     and **Resolution** to camera size ÷ 8 (1280×720 → **160 × 90**;
-     640×480 → 80 × 60). Set **Pixel Format** to **32-bit float (RGBA)**.
+     and **Resolution** to **160 × 90** (your 1280×720 camera ÷ 8 px blocks). Set **Pixel Format** to **32-bit float (RGBA)**.
    - **Vectors** page: set **Uniform Name 0** to `uRegularisation`, value
      x = `0.001`.
 
 ✅ No red X. Sitting still gives an almost black image. Waving a hand
 left and right gives blocky **red** patches in one direction, and up and
 down gives **green**.
-❌ If there's a red X, copy the text of the DAT ending in `_info` next to
+❌ If there's a red X, click **i** on `motion` and send the error, or copy the text of the DAT ending in `_info` next to
 `motion` and send it to Claude.
 
 ## Step 4: Audio → row texture
@@ -100,7 +101,7 @@ down gives **green**.
 4. Tab → TOP → **CHOP to TOP**. Rename it **`rows`**. Set **CHOP** to
    `rows_sel`, and **Data Format** to *R*. On the Common page, set **Pixel
    Format** to 32-bit float.
-   ✅ Middle-click: the resolution is **1 × 24** (report it if it shows
+   ✅ Click **i**: the resolution is **1 × 24** (report it if it shows
    24 × 1). The preview flickers with the audio.
 
 ## Step 5: Stand-in subject mask
