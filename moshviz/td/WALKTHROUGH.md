@@ -371,6 +371,7 @@ has everything in one place:
 | **Rotate (deg)** | rotates the footage |
 | **Input exposure / brightness / contrast / gamma / saturation** | grade the input *before* motion and outline analysis (the `prep` pass): more contrast gives the analysis more to find |
 | **Input soften (denoise)** | 0 to 1; blurs sensor noise away so dark grain is not mistaken for motion or edges |
+| **Mosh from motion** | 0 = the music's frequency rings decide where the image breaks; 1 = movement decides where (the colour-glowing blocks break most) and the music decides how much |
 | **Mirror fill** | fills the fixed 1280 × 720 canvas around the image with mirrored copies (off = black bars) |
 | **Mirror fade** | brightness of each copy further out (1 = all equal) |
 | **Symmetry** | mirrors the left half onto the right: a kaleidoscope look |

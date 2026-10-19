@@ -28,6 +28,10 @@ uniform float uReseedFrames;  // frames between reshuffles of which blocks mosh;
 uniform float uFrame;         // set to absTime.frame
 uniform float uRadial;        // 1 = concentric rings (low bands at the centre), 0 = horizontal strips
 uniform float uRadialCurve;   // ring spacing: 2 = equal-area rings; > 2 = bigger centre (low) rings
+uniform float uMotionDrive;   // 0 = band layout decides where (rings/strips), 1 = motion decides where
+uniform float uMoshSpeedLowPx;  // with motion drive: block speeds at or below this do not mosh (e.g. 0.3)
+uniform float uMoshSpeedHighPx; // with motion drive: speeds at or above this get the full audio amount (e.g. 2)
+uniform float uMotionGain;    // with motion drive: multiplies the audio energy (e.g. 1.5)
 
 const int CURRENT = 0;
 const int FEEDBACK = 1;
@@ -71,6 +75,27 @@ float bandAmount(float position)
 ivec2 blockCoord(vec2 uv)
 {
     return ivec2(uv * uTD2DInfos[MOTION].res.zw);
+}
+
+// Overall audio energy: the mean of all band amounts (0..1).
+float audioEnergy()
+{
+    int bandCount = int(uTD2DInfos[ROWS].res.w);
+    float sum = 0.0;
+    for (int band = 0; band < bandCount; ++band) {
+        sum += texelFetch(sTD2DInputs[ROWS], ivec2(0, band), 0).r;
+    }
+    return sum / float(max(bandCount, 1));
+}
+
+// Motion-driven amount for a block: how fast it moves decides *where*, the
+// overall audio energy decides *how much*. The moving blocks, the same ones
+// look.glsl colours, are the ones that break, and silence still means none.
+float motionAmount(ivec2 block)
+{
+    float speed = length(texelFetch(sTD2DInputs[MOTION], block, 0).xy);
+    float moving = smoothstep(uMoshSpeedLowPx, max(uMoshSpeedHighPx, uMoshSpeedLowPx + 1e-3), speed);
+    return clamp(moving * audioEnergy() * uMotionGain, 0.0, 1.0);
 }
 
 vec2 blockMotionPx(ivec2 block)
@@ -126,7 +151,8 @@ void main()
     // Read the amount at the block centre so a block is never split
     // between two bands.
     vec2 blockCentreUV = (vec2(block) + 0.5) / uTD2DInfos[MOTION].res.zw;
-    float amount = bandAmount(bandPosition(blockCentreUV));
+    float bandDriven = bandAmount(bandPosition(blockCentreUV));
+    float amount = mix(bandDriven, motionAmount(block), clamp(uMotionDrive, 0.0, 1.0));
     vec4 background = mix(live, moshed, moshWeight(amount, block));
 
     float maskValue = texture(sTD2DInputs[MASK], uv).r;

@@ -55,6 +55,10 @@ UNIFORMS = {
         'uFrame': 'absTime.frame',
         'uRadial': (1.0,),
         'uRadialCurve': (3.0,),
+        'uMotionDrive': _CONTROL + 'Moshmotion',
+        'uMoshSpeedLowPx': (0.3,),
+        'uMoshSpeedHighPx': (2.0,),
+        'uMotionGain': (1.5,),
     },
     'stylize': {
         'uExposure': (1.0,),

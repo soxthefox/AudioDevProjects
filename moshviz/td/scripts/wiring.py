@@ -132,6 +132,8 @@ CONTROLS = {
     'Gamma': ('float', 'Input gamma', 1.0, (0.2, 4.0)),
     'Saturation': ('float', 'Input saturation', 1.0, (0.0, 2.0)),
     'Soften': ('float', 'Input soften (denoise)', 0.0, (0.0, 1.0)),
+    # Where the datamosh happens: 0 = frequency rings, 1 = wherever things move.
+    'Moshmotion': ('float', 'Mosh from motion', 1.0, (0.0, 1.0)),
     # Output canvas (frame pass).
     'Mirrorfill': ('toggle', 'Mirror fill', True, None),
     'Symmetry': ('toggle', 'Symmetry', False, None),

@@ -402,6 +402,21 @@ margins, and its symmetry suits the visuals.
 
 ---
 
+## D17. Motion-driven mosh: movement decides where, music decides how much (decided)
+
+The first layouts (strips, then rings) let the *spectrum* decide where
+the image breaks. Watching the result, Sohum wanted the breaks to come
+from the moving parts, the same blocks the motion glow colours. In motion
+drive, a block's amount is smoothstep(speed) × (mean of all band
+amounts) × gain: speed picks the place, the overall audio energy the
+strength, and silence still means no mosh. A `Mosh from motion` control
+blends continuously between the band layout (0) and motion (1), so the
+frequency layout is still available, alone or mixed in. This ties the
+three layers together: motion is visible as colour, breaks the image
+where it happens, and the music modulates how hard.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows
