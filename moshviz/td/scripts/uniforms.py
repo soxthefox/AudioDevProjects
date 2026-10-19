@@ -29,6 +29,10 @@ UNIFORMS = {
         'uSaturation': _CONTROL + 'Saturation',
         'uSoften': _CONTROL + 'Soften',
     },
+    'motion_mask': {
+        'uSpeedLowPx': (0.4,),
+        'uSpeedHighPx': (1.5,),
+    },
     'motion': {
         'uRegularisation': (0.001,),
         'uIlluminationComp': (1.0,),

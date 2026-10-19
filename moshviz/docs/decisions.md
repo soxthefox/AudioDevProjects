@@ -268,6 +268,15 @@ figures and clones would only clutter the frame.
 Clones copy the *finished* image, so each clone carries the same
 outlines and glow as the performer.
 
+**Movie mode: a motion mask.** With no person segmentation for video
+files on macOS, the clones copy *whatever moves*: `motion_mask.glsl`
+blends per-block motion speeds bilinearly (speeds, not vectors, so
+opposite motions in neighbouring blocks do not cancel) and maps them
+through a smoothstep. On a stage or a dance floor, the moving parts are
+mostly people and lights. Only the clones use it; mosh and stylize keep
+running without a mask. An offline segmentation pass remains the
+higher-quality option.
+
 **Revision: a receding crowd with a time ripple.** Clones are laid out in
 rows with pinhole perspective: row r at depth z = 1 + r * uRowDepth is
 scaled by 1/z towards a vanishing point, and deeper rows hold more

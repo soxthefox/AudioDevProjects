@@ -83,6 +83,10 @@ USE_MOVIE = SOURCE == 'movie'
 FREE_CLOCK = USE_MOVIE and CLOCK == 'free'
 VIDEO = 'clip_xform' if USE_MOVIE else 'mp_video'
 SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
+# Clones need figures to copy. With no segmentation in movie mode, they
+# copy whatever moves (shaders/motion_mask.glsl); mosh and stylize keep
+# SUBJECT_MASK, so their behaviour is unchanged.
+CLONE_MASK = 'motion_mask' if USE_MOVIE else 'mask'
 SOURCE_SIZE = MOVIE_SIZE if USE_MOVIE else CAMERA_SIZE
 BLOCK_PX = MOVIE_BLOCK_PX if USE_MOVIE else CAMERA_BLOCK_PX
 
@@ -99,6 +103,8 @@ CREATE = {
     'clones_switch': 'switchTOP',
     'prep': 'glslTOP',          # input grading (shaders/prep.glsl), before all analysis
     'prep_pixel': 'textDAT',    # holds prep.glsl, synced to the file
+    'motion_mask': 'glslTOP',   # "whatever moves" mask for clones (shaders/motion_mask.glsl)
+    'motion_mask_pixel': 'textDAT',
 }
 
 # Custom parameters on `controls`: name -> (kind, label, default, slider range).
@@ -136,7 +142,8 @@ WIRED = {
     'mosh': ['stylize', 'mosh_fb', SUBJECT_MASK],
     'look': ['mosh', 'motion'],
     'history_image': ['look'],
-    'history_mask': [SUBJECT_MASK],
+    'history_mask': [CLONE_MASK],
+    'motion_mask': ['motion'],
     'clones': ['look', 'history_image', 'history_mask'],
     'clones_switch': ['look', 'clones'],   # index 0 = clones off, 1 = on
     'out': ['clones_switch'],
@@ -151,9 +158,10 @@ PARS = {
     'prev_cam': {'top': 'cam'},                                # Feedback TOP target
     'mosh_fb': {'top': 'mosh'},                                # Feedback TOP target
     'mosh': {'tops': 'rows motion'},                           # GLSL inputs 3 and 4
-    'clones': {'tops': SUBJECT_MASK},                          # live mask, input 3
+    'clones': {'tops': CLONE_MASK},                            # live mask, input 3
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
     'prep': {'pixeldat': 'prep_pixel'},                        # GLSL TOP shader source
+    'motion_mask': {'pixeldat': 'motion_mask_pixel'},          # GLSL TOP shader source
 }
 
 # Constant settings of created operators.
@@ -173,6 +181,9 @@ SETTINGS = {
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
     'prep_pixel': {'file': 'shaders/prep.glsl', 'syncfile': True},
     'prep': {'format': 'rgba16float'},
+    'motion_mask_pixel': {'file': 'shaders/motion_mask.glsl', 'syncfile': True},
+    'motion_mask': {'format': 'rgba16float', 'outputresolution': 'custom',
+                    'resolutionw': SOURCE_SIZE[0], 'resolutionh': SOURCE_SIZE[1]},
     'clip_osc': {'netaddress': '127.0.0.1', 'port': 9001, 'sendevents': True},
     'motion': {'outputresolution': 'custom',
                'resolutionw': SOURCE_SIZE[0] // BLOCK_PX,
@@ -318,8 +329,6 @@ def _check_controls(network):
             par.val = default
         if slider is not None and (par.normMin, par.normMax) != slider:
             par.normMin, par.normMax = slider   # slider travel only, not the value
-    if USE_MOVIE and controls.par.Clones.eval():
-        print('wiring: note: clones need a performer mask; with a movie there is none, so they show nothing')
 
 
 def _check_cook_rate():
