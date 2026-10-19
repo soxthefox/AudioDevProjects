@@ -173,7 +173,8 @@ HISTORY_EXPRESSIONS = {'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAME
 _CONTROL = "op('controls').par."
 # Wall clock looped over [Clip start, Clip end) (end 0 = clip length); the
 # loop length is kept above one frame so it never divides by zero.
-_FREE_INDEX = ("{c}Clipstart + absTime.seconds % max(({c}Clipend or {d}) - {c}Clipstart, {f})"
+_FREE_INDEX = ("{c}Clipstart.eval() + absTime.seconds % "
+               "max(({c}Clipend.eval() or {d}) - {c}Clipstart.eval(), {f})"
                .format(c="op('controls').par.", d=MOVIE_DURATION_S, f=1.0 / MOVIE_FPS))
 EXPRESSIONS = {
     'history_image': HISTORY_EXPRESSIONS,
