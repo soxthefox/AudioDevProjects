@@ -1,11 +1,13 @@
 // moshviz datamosh pass.
 //
-// GLSL TOP inputs:
-//   0 CURRENT  live camera frame
-//   1 FEEDBACK previous output of this TOP (Feedback TOP)
-//   2 MASK     subject mask, white = performer
-//   3 ROWS     1 x N mosh amounts per strip (CHOP to TOP from the OSC rows)
-//   4 MOTION   per-block motion vectors from motion.glsl (32-bit float)
+// GLSL TOP inputs. A GLSL TOP takes at most three wired inputs; inputs 3
+// and 4 are listed in its TOPs parameter ("rows motion"), which appends
+// them after the wired ones.
+//   0 CURRENT  live camera frame                                  (wired)
+//   1 FEEDBACK previous output of this TOP (Feedback TOP)         (wired)
+//   2 MASK     subject mask, white = performer                    (wired)
+//   3 ROWS     1 x N mosh amounts per strip (CHOP to TOP)         (TOPs)
+//   4 MOTION   per-block motion vectors from motion.glsl (float)  (TOPs)
 //
 // A real codec stores a keyframe, then predicts each later frame by moving
 // blocks of the previous decoded frame along motion vectors. Datamoshing

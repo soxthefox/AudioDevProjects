@@ -122,15 +122,20 @@ It stands in for you until the Kinect works.
    **File** to `shaders/mosh.glsl`, with Sync to File on.
 2. Tab → TOP → **Feedback**. Rename it **`mosh_fb`**. Connect `cam` →
    `mosh_fb`, and set its **Target TOP** to `mosh`.
-3. Connect into `mosh` in exactly this order:
-   0 `cam`, 1 `mosh_fb`, 2 `mask_stub`, 3 `rows`, 4 `motion`.
-   Until all five are connected, `mosh` shows a red/blue checkerboard (the
-   shader asks for inputs that do not exist yet). Wiring five inputs by
-   dragging is fiddly: dropping a wire on a used connector replaces it.
-   The reliable way is the Textport (**Dialogs → Textport and DATs**).
-   Paste with no leading space; it runs from the root, hence the full paths:
+3. Give `mosh` its five inputs. A GLSL TOP accepts only **three wired
+   inputs**, so the last two go in a parameter instead:
+   - **Wire** in this order (drag each onto `mosh`): 0 `cam`, 1 `mosh_fb`,
+     2 `mask_stub`.
+   - **GLSL** page → **TOPs** field: type `rows motion` and press Return.
+     These become inputs 3 and 4 (confirmed with Check A).
+
+   Until all five are present, `mosh` shows a red/blue checkerboard: the
+   shader asks for inputs that do not exist yet. If a wire lands on the
+   wrong input (dropping on a used connector replaces it), set all three
+   from the Textport (**Dialogs → Textport and DATs**; paste with no
+   leading space):
    ```python
-   p = '/project1/'; op(p + 'mosh').setInputs([op(p + n) for n in ('cam', 'mosh_fb', 'mask_stub', 'rows', 'motion')])
+   p = '/project1/'; op(p + 'mosh').setInputs([op(p + n) for n in ('cam', 'mosh_fb', 'mask_stub')])
    ```
    Check with `[i.name for i in op('/project1/mosh').inputs]`.
 4. `mosh` **Common** page: set **Pixel Format** to **16-bit float (RGBA)**.
@@ -151,9 +156,10 @@ It stands in for you until the Kinect works.
    Right-click → View…
 
 ✅ **Check A (no audio):** make a **Ramp** TOP (vertical, resolution
-1 × 24) and connect it into `mosh` input 3 in place of `rows`. When you
+1 × 24) and change the `mosh` **TOPs** field to `ramp1 motion`. When you
 move, the **top** of the picture smears and the **bottom** stays normal.
-The circle always stays clean. Then put `rows` back.
+The circle always stays clean. Then set TOPs back to `rows motion`.
+(Passed.)
 
 ✅ **Check B (audio):** with the service running, single notes smear a few
 thin bands and the chord smears large areas. Report whether low notes

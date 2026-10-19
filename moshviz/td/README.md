@@ -15,13 +15,13 @@ Until the camera spike is done, use the Mac's built-in camera, with a
 Circle TOP standing in for the subject mask.
 
 ```
-videodevicein1 ─► cam (Null) ─┬──────────────────────────────► mosh (GLSL, input 0)
+videodevicein1 ─► cam (Null) ─┬──────────────────────────────► mosh (GLSL, wired input 0)
                               ├─► prev_cam (Feedback, Target TOP = cam)
                               │        │
-                              ├────────┴─► motion (GLSL) ────► mosh input 4
-                              └─► mosh_fb (Feedback, Target TOP = mosh) ─► mosh input 1
-mask_stub (Circle TOP, white disc on black) ───────────────────► mosh input 2
-oscin1 (OSC In CHOP, port 9000) ─► rows_sel (Select CHOP) ─► rows (CHOP to TOP) ─► mosh input 3
+                              ├────────┴─► motion (GLSL) ────► mosh input 4 (TOPs parameter)
+                              └─► mosh_fb (Feedback, Target TOP = mosh) ─► mosh wired input 1
+mask_stub (Circle TOP, white disc on black) ───────────────────► mosh wired input 2
+oscin1 (OSC In CHOP, port 9000) ─► rows_sel (Select CHOP) ─► rows (CHOP to TOP) ─► mosh input 3 (TOPs parameter)
 mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 ```
 
@@ -34,7 +34,7 @@ mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 | `oscin1` (OSC In CHOP) | Network Port 9000 |
 | `rows_sel` (Select CHOP) | CHOPs: empty (fed by the wire). Channel Names: `moshviz/row/*`, so only the 24 strip channels pass through |
 | `rows` (CHOP to TOP) | Data Format: R. Pixel Format: 32-bit float. This gives a 1 × 24 texture, one row per channel |
-| `mosh` (GLSL TOP) | Pixel Shader: `mosh_pixel`. Output Resolution: same as `cam`. Pixel Format: 16-bit float (RGBA) or higher, because repeated feedback in 8-bit loses colour detail |
+| `mosh` (GLSL TOP) | Wired inputs: `cam`, `mosh_fb`, `mask_stub` (a GLSL TOP takes at most 3 wired inputs). **TOPs**: `rows motion`, which become inputs 3 and 4. Input Extend Mode UV: Hold. Pixel Shader: `mosh_pixel`. Output Resolution: same as `cam`. Pixel Format: 16-bit float (RGBA) or higher, because repeated feedback in 8-bit loses colour detail |
 
 `mosh` uniforms (Vectors page; name in the left field, value in x):
 
@@ -63,11 +63,11 @@ me what you actually see.
    and red is horizontal motion. Up and down movement shows in green. A
    still scene should be almost all black. **(confirm the direction: if
    moving right gives black, the camera image is mirrored, which is fine)**
-2. **Strip mapping, without audio.** Temporarily replace input 3 of
-   `mosh` with a **Ramp TOP** (vertical, black at the bottom, white at the
+2. **Strip mapping, without audio.** Temporarily set the `mosh` TOPs
+   field to `ramp1 motion`, using a **Ramp TOP** (vertical, black at the bottom, white at the
    top, resolution 1 × 24). The top of the frame should smear and drag
    trails when you move, and the bottom should stay live. With a
-   **Constant TOP** (white) as input 3, the whole frame outside the circle
+   **Constant TOP** (white) in place of the ramp, the whole frame outside the circle
    moshes, and the circle region always stays live.
 3. **OSC rows.** Start the service (see the main README). Use `--file` on
    any guitar recording if no interface is connected. `oscin1` should
