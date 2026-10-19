@@ -61,7 +61,7 @@ MOVIE_FILE = '../recordings/IMG_1423_prores.mov'
 # the mosh and glow flicker (measured: 43 uneven fps with a 30 fps camera
 # and a 60 fps project).
 CAMERA_FPS = 30.0
-MOVIE_FPS = 29.498   # IMG_1423.MOV average frame rate, read with PyAV
+MOVIE_FPS = 30.0   # tools/intra_frame.py writes constant 30 fps (the phone clip is variable rate)
 
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
