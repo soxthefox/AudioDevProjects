@@ -47,6 +47,7 @@ PARS = {
     'prev_cam': {'top': 'cam'},                                # Feedback TOP target
     'mosh_fb': {'top': 'mosh'},                                # Feedback TOP target
     'mosh': {'tops': 'rows motion'},                           # GLSL inputs 3 and 4
+    'clones': {'tops': 'mask'},                                # live mask, input 3
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
 }
 

@@ -55,6 +55,7 @@ UNIFORMS = {
         'uColumnDelayFrames': (1.0,),
         'uHistoryFrames': "op('history_image').par.cachesize.eval()",
         'uFrame': 'absTime.frame',
+        'uBlend': (1.0,),
     },
     'look': {
         # The stylize pass already sets the palette, so the grade is neutral.

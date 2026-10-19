@@ -6,9 +6,10 @@
 //   input 1: history_image  (Texture 3D TOP of `look`, as a 2D texture array)
 //   input 2: history_mask   (Texture 3D TOP of `mask`, as a 2D texture array)
 //   Pixel Format: 16-bit float (RGBA).
-// GLSL TOP sorts inputs by texture type, so `look` is sTD2DInputs[0] and
-// the two histories are sTD2DArrayInputs[0] and [1]. scripts/wiring.py
-// creates the history nodes.
+//   TOPs parameter: mask  (the live subject mask, input 3)
+// GLSL TOP sorts inputs by texture type, so `look` is sTD2DInputs[0], the
+// live mask sTD2DInputs[1], and the two histories sTD2DArrayInputs[0] and
+// [1]. scripts/wiring.py creates the history nodes and sets all of this.
 // Sits between `look` and `out`. To unplug it, bypass the node (Textport:
 // op('/project1/clones').bypass = True) or set uRows to 0. A bypassed TOP
 // passes input 0 through unchanged, so nothing else needs rewiring. Meant
@@ -30,9 +31,20 @@
 // Time delay. Each history node writes the current frame into slice
 // (frame mod N), where N is its cache size, so the frame from d frames ago
 // is in slice (frame - d) mod N. A clone in row r, column c shows the
-// frame from r * uRowDelayFrames + |c| * uColumnDelayFrames ago, so
+// frame from 1 + r * uRowDelayFrames + |c| * uColumnDelayFrames ago, so
 // the crowd repeats the performer's movement in a ripple running back
-// through the rows.
+// through the rows. The extra frame keeps clones off the slice being
+// written this frame: whether the history node cooks before or after this
+// shader reads the clock, slice (frame - 1) holds a recent, complete frame.
+// (Reading delay 0 from history to protect the performer once picked up a
+// frame from a second ago and let clones cover the performer's hand; the
+// performer's priority now uses the live mask.)
+//
+// Blending. uBlend = 1 ("lighten") takes the brighter of the clone and
+// what is behind it, so clones only ever add light. On the dark outline
+// image, the performer's lines stay visible even where segmentation misses
+// a fast-moving hand. uBlend = 0 makes clones opaque, with nearer figures
+// covering further ones.
 
 uniform float uRows;          // rows of clones including the performer's row, 0 to MAX_ROWS (0 = off)
 uniform float uColumns;       // clones per side in each row, 0 to MAX_COLUMNS
@@ -45,8 +57,11 @@ uniform float uRowDelayFrames;    // extra delay per row, in frames (e.g. 3; 0 =
 uniform float uColumnDelayFrames; // extra delay per column away from the centre, in frames (e.g. 1)
 uniform float uHistoryFrames;     // cache size of the history nodes (frames kept)
 uniform float uFrame;             // absTime.frame, the same clock the history nodes use
+uniform float uBlend;             // 1 = lighten (clones add light only), 0 = opaque clones
 
 const int IMAGE = 0;            // sTD2DInputs index
+const int LIVE_MASK = 1;        // sTD2DInputs index (from the TOPs parameter)
+const float MIN_DELAY_FRAMES = 1.0;
 const int HISTORY_IMAGE = 0;    // sTD2DArrayInputs index
 const int HISTORY_MASK = 1;     // sTD2DArrayInputs index
 const int MAX_ROWS = 10;
@@ -56,21 +71,27 @@ const float FEET_Y = 0.0;     // and is scaled around the bottom edge of the fra
 
 out vec4 fragColor;
 
-// History slice holding the frame from `delay` frames ago.
+// History slice holding the frame from `delay` frames ago (at least
+// MIN_DELAY_FRAMES; see the time-delay note above).
 float historySlice(float delay)
 {
-    float n = max(uHistoryFrames, 1.0);
-    float d = clamp(floor(delay + 0.5), 0.0, n - 1.0);
+    float n = max(uHistoryFrames, 2.0);
+    float d = clamp(floor(delay + 0.5) + MIN_DELAY_FRAMES, MIN_DELAY_FRAMES, n - 1.0);
     return mod(uFrame - d, n);
 }
 
-float subjectAt(vec2 uv, float slice)
+float feathered(float maskValue)
+{
+    return smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather, maskValue);
+}
+
+// Clone coverage at `uv` in the historical frame `slice`.
+float cloneAt(vec2 uv, float slice)
 {
     if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
         return 0.0;
     }
-    float m = texture(sTD2DArrayInputs[HISTORY_MASK], vec3(uv, slice)).r;
-    return smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather, m);
+    return feathered(texture(sTD2DArrayInputs[HISTORY_MASK], vec3(uv, slice)).r);
 }
 
 // Screen position of the feet of the figure in column `column` at depth `z`.
@@ -107,15 +128,17 @@ void main()
             vec2 src = sourceUV(uv, feet, z);
             float slice = historySlice(float(row) * uRowDelayFrames
                                        + float(abs(c)) * uColumnDelayFrames);
-            float coverage = subjectAt(src, slice);
+            float coverage = cloneAt(src, slice);
             if (coverage > 0.0) {
                 vec3 figure = texture(sTD2DArrayInputs[HISTORY_IMAGE], vec3(src, slice)).rgb * brightness;
-                colour = mix(colour, figure, coverage);
+                vec3 opaque = mix(colour, figure, coverage);
+                vec3 lighten = max(colour, figure * coverage);
+                colour = mix(opaque, lighten, uBlend);
             }
         }
     }
 
-    // The performer stays in front of every clone.
-    colour = mix(colour, base.rgb, subjectAt(uv, historySlice(0.0)));
+    // The performer stays in front of every clone, using the live mask.
+    colour = mix(colour, base.rgb, feathered(texture(sTD2DInputs[LIVE_MASK], uv).r));
     fragColor = TDOutputSwizzle(vec4(colour, 1.0));
 }
