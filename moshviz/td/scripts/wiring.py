@@ -38,7 +38,12 @@ made if missing (the others are built by hand, see WALKTHROUGH.md).
 NETWORK = '/project1'
 
 SOURCE = globals().get('MOSHVIZ_SOURCE', 'camera')   # 'camera' or 'movie'
-MOVIE_FILE = '../recordings/IMG_1422_2.MOV'   # relative to the .toe (recordings/ is gitignored)
+# Video for the movie node, relative to the .toe (recordings/ is gitignored).
+# Use an intra-frame copy made with tools/intra_frame.py: the movie is
+# seeked every frame to follow the audio clock, and HEVC phone footage
+# stalls under that (it froze after a few seconds). The service still plays
+# the audio from the original file.
+MOVIE_FILE = '../recordings/IMG_1422_2_prores.mov'
 
 # The cook rate must match the source's frame rate. Otherwise some frames
 # repeat the previous image, the motion pass sees zero motion on them, and

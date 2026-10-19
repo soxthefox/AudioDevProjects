@@ -331,8 +331,15 @@ exactly what it plays, and the movie shows the frame at that moment
 only takes a webcam, so with a file there is **no performer mask**:
 everyone moshes (the dance-floor case), and clones are bypassed.
 
-1. Put the clip in `moshviz/recordings/` (gitignored). For another clip,
-   change `MOVIE_FILE`, `MOVIE_FPS` and `MOVIE_SIZE` in `scripts/wiring.py`.
+1. Put the clip in `moshviz/recordings/` (gitignored) and make an
+   intra-frame copy for TouchDesigner. Phone video (HEVC/H.264) freezes
+   when the movie node seeks it every frame:
+   ```bash
+   .venv/bin/python tools/intra_frame.py recordings/IMG_1422_2.MOV
+   ```
+   For another clip, change `MOVIE_FILE` (the `_prores.mov` copy),
+   `MOVIE_FPS` and `MOVIE_SIZE` in `scripts/wiring.py`. The service plays
+   the original file's audio.
 2. Terminal (stop any other running service first: only one can use the
    OSC ports):
    ```bash

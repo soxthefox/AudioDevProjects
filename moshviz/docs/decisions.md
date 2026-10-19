@@ -293,7 +293,17 @@ Two independent players (TouchDesigner's movie clock and the service's
 timer) would drift apart over a clip.
 
 Audio is decoded from the video container with PyAV, so no separate
-extraction step and no system ffmpeg are needed. MediaPipe on macOS only
+extraction step and no system ffmpeg are needed.
+
+**Follow-up: intra-frame video.** Following the audio clock means
+seeking the movie every frame. The iPhone HEVC clip froze after a few
+seconds while the audio clock kept running (confirmed in the service
+log). Inter-frame codecs store occasional full frames and predict the
+rest, so each seek decodes forward from the last full frame.
+`tools/intra_frame.py` converts the video to ProRes Proxy, where every
+frame is stored whole, at 1280 × 720 (the licence cap). It keeps the
+source timestamps (1/600 s clock), so the variable frame rate is
+preserved. The 11.8 s clip is 8 MB. MediaPipe on macOS only
 takes a webcam, so file input runs without a performer mask, and the
 clones pass is bypassed. The project cook rate is set to the clip's frame
 rate (25.63 fps), for the same reason as the 30 fps camera lock.
