@@ -89,7 +89,7 @@ void main()
 
     float subject = texture(sTD2DInputs[MASK], uv).r;
     vec3 lineColour = mix(uRoomColour, uSubjectColour, subject);
-    vec3 image = texture(sTD2DInputs[CAMERA], uv).rgb * uImageLevel;
+    vec3 photo = texture(sTD2DInputs[CAMERA], uv).rgb * uImageLevel;
 
-    fragColor = TDOutputSwizzle(vec4(image + lineColour * brightness, 1.0));
+    fragColor = TDOutputSwizzle(vec4(photo + lineColour * brightness, 1.0));
 }
