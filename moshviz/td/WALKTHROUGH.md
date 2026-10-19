@@ -334,7 +334,7 @@ everyone moshes (the dance-floor case), and clones are bypassed.
    intra-frame copy for TouchDesigner. Phone video (HEVC/H.264) freezes
    when the movie node seeks it every frame:
    ```bash
-   .venv/bin/python tools/intra_frame.py recordings/IMG_1422_2.MOV
+   .venv/bin/python tools/intra_frame.py recordings/IMG_1423.MOV
    ```
    For another clip, change `MOVIE_FILE` (the `_prores.mov` copy),
    `MOVIE_FPS` and `MOVIE_SIZE` in `scripts/wiring.py`. The service plays
@@ -342,7 +342,7 @@ everyone moshes (the dance-floor case), and clones are bypassed.
 2. Terminal (stop any other running service first: only one can use the
    OSC ports):
    ```bash
-   .venv/bin/python features/service.py --file recordings/IMG_1422_2.MOV --play --loop --set threshold=0.7
+   .venv/bin/python features/service.py --file recordings/IMG_1423.MOV --play --loop --set threshold=0.7
    ```
 3. Textport: switch the network to the movie. This creates `movie`
    (Movie File In) and `no_mask` (black), rewires `cam`, bypasses

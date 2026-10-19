@@ -54,14 +54,14 @@ SOURCE = globals().get('MOSHVIZ_SOURCE', 'camera')   # 'camera' or 'movie'
 # seeked every frame to follow the audio clock, and HEVC phone footage
 # stalls under that (it froze after a few seconds). The service still plays
 # the audio from the original file.
-MOVIE_FILE = '../recordings/IMG_1422_2_prores.mov'
+MOVIE_FILE = '../recordings/IMG_1423_prores.mov'
 
 # The cook rate must match the source's frame rate. Otherwise some frames
 # repeat the previous image, the motion pass sees zero motion on them, and
 # the mosh and glow flicker (measured: 43 uneven fps with a 30 fps camera
 # and a 60 fps project).
 CAMERA_FPS = 30.0
-MOVIE_FPS = 23.879   # IMG_1422_2.MOV average frame rate, read with PyAV
+MOVIE_FPS = 29.498   # IMG_1423.MOV average frame rate, read with PyAV
 
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
@@ -69,7 +69,7 @@ MOVIE_FPS = 23.879   # IMG_1422_2.MOV average frame rate, read with PyAV
 CAMERA_BLOCK_PX = 8
 MOVIE_BLOCK_PX = 4   # finer for footage shown large; 8 px tiles read as pixelation
 CAMERA_SIZE = (1280, 720)
-MOVIE_SIZE = (1280, 720)   # IMG_1422_2.MOV is 1920 x 1080, but the Non-Commercial licence caps TOPs at 1280
+MOVIE_SIZE = (720, 1280)   # IMG_1423.MOV, filmed upright: portrait after tools/intra_frame.py applies the rotation
 
 HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
