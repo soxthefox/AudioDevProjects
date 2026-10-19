@@ -332,15 +332,15 @@ only takes a webcam, so with a file there is **no performer mask**:
 everyone moshes (the dance-floor case), and clones are bypassed.
 
 1. Put the clip in `moshviz/recordings/` (gitignored). For another clip,
-   change `MOVIE_FILE` and `MOVIE_FPS` in `scripts/wiring.py`.
+   change `MOVIE_FILE`, `MOVIE_FPS` and `MOVIE_SIZE` in `scripts/wiring.py`.
 2. Terminal (stop any other running service first: only one can use the
    OSC ports):
    ```bash
-   .venv/bin/python features/service.py --file recordings/IMG_1422.MOV --play --loop
+   .venv/bin/python features/service.py --file recordings/IMG_1422_2.MOV --play --loop
    ```
 3. Textport: switch the network to the movie. This creates `movie`
    (Movie File In) and `no_mask` (black), rewires `cam`, bypasses
-   `clones`, and sets the cook rate to the clip's 25.63 fps:
+   `clones`, sets the cook rate to the clip's frame rate and keeps 8 px motion blocks:
    ```python
    MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
    ```

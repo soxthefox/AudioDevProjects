@@ -31,14 +31,21 @@ made if missing (the others are built by hand, see WALKTHROUGH.md).
 NETWORK = '/project1'
 
 SOURCE = globals().get('MOSHVIZ_SOURCE', 'camera')   # 'camera' or 'movie'
-MOVIE_FILE = '../recordings/IMG_1422.MOV'   # relative to the .toe (recordings/ is gitignored)
+MOVIE_FILE = '../recordings/IMG_1422_2.MOV'   # relative to the .toe (recordings/ is gitignored)
 
 # The cook rate must match the source's frame rate. Otherwise some frames
 # repeat the previous image, the motion pass sees zero motion on them, and
 # the mosh and glow flicker (measured: 43 uneven fps with a 30 fps camera
 # and a 60 fps project).
 CAMERA_FPS = 30.0
-MOVIE_FPS = 25.63   # IMG_1422.MOV average frame rate, read with PyAV
+MOVIE_FPS = 23.879   # IMG_1422_2.MOV average frame rate, read with PyAV
+
+# Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
+# the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
+# footage, which made the mosh and glow visibly chunkier.
+BLOCK_PX = 8
+CAMERA_SIZE = (1280, 720)
+MOVIE_SIZE = (1920, 1080)   # IMG_1422_2.MOV
 
 HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
@@ -46,6 +53,7 @@ HISTORY_FRAMES = 32
 USE_MOVIE = SOURCE == 'movie'
 VIDEO = 'movie' if USE_MOVIE else 'mp_video'
 SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
+SOURCE_SIZE = MOVIE_SIZE if USE_MOVIE else CAMERA_SIZE
 
 # Operators the script creates if they do not exist: name -> operator type.
 CREATE = {
@@ -92,6 +100,9 @@ SETTINGS = {
     'history_mask': HISTORY_SETTINGS,
     'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
     'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
+    'motion': {'outputresolution': 'custom',
+               'resolutionw': SOURCE_SIZE[0] // BLOCK_PX,
+               'resolutionh': SOURCE_SIZE[1] // BLOCK_PX},
 }
 
 # Expression settings of created operators.
