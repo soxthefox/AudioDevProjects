@@ -124,13 +124,16 @@ class ParamServer:
             log.warning("unknown parameter %r (known: %s)", name, ", ".join(MappingParams.names()))
 
     def _on_clip(self, address: str, *args: object) -> None:
+        # TouchDesigner's OSC Out CHOP sends every sample since its last cook,
+        # so a message can carry several values; the last one is the newest.
         name = address.rsplit("/", 1)[-1]
-        if name not in ("start", "end") or len(args) != 1 or not isinstance(args[0], (int, float)):
+        if name not in ("start", "end") or not args or not isinstance(args[-1], (int, float)):
             log.warning("ignoring %s %r", address, args)
             return
-        if getattr(self.clip, f"{name}_s") != float(args[0]):
-            self.clip.set(name, float(args[0]))
-            log.info("clip %s = %.2f s", name, float(args[0]))
+        seconds = float(args[-1])
+        if getattr(self.clip, f"{name}_s") != seconds:
+            self.clip.set(name, seconds)
+            log.info("clip %s = %.2f s", name, seconds)
 
     def snapshot(self) -> MappingParams:
         with self._lock:
