@@ -261,6 +261,35 @@ The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
    with **TOP** = `/project1/image_segmentation/original_video`, wired into
    `cam` in place of `video_in`.
 
+## Step 9: Outline (lidar-style) view
+
+Replaces the photographic image with glowing outlines. Moving edges are
+bright, and still ones are dim. The datamosh then drags outlines instead
+of the room.
+
+1. Tab → TOP → **GLSL**, renamed **`stylize`**. In its `_pixel` DAT, set
+   **File** to `shaders/stylize.glsl`, with Sync to File on.
+2. Wire three inputs, in order: 0 `cam`, 1 `motion`, 2 `mask`.
+3. **Common** page: **Pixel Format** 16-bit float (RGBA).
+4. Feed `stylize` into `mosh` and `mosh_fb` in place of `cam` (the motion
+   pass keeps using the real `cam`):
+   ```python
+   p = '/project1/'; op(p + 'mosh').setInputs([op(p + n) for n in ('stylize', 'mosh_fb', 'mask')]); op(p + 'mosh_fb').setInputs([op(p + 'stylize')])
+   ```
+5. Apply the values (this also adds the uniform rows):
+   ```python
+   exec(open(project.folder + '/scripts/uniforms.py').read())
+   ```
+
+✅ `out` is mostly dark, with outlines. Your body is outlined in warm
+white and the room in cyan. Moving parts are bright and still parts dim.
+Music makes the outlines smear and glow.
+
+Knobs (in `scripts/uniforms.py`, `stylize` block): `uStaticLevel` 0 makes
+still things vanish; `uPointMix` 1 gives dotted, scanner-like lines;
+`uEdgeThreshold` higher removes noise sparkle; `uEdgeScalePx` higher
+gives thicker lines; `uImageLevel` 0.1 brings back a faint photo.
+
 ## Send back to Claude
 
 1. Which ✅ checks passed, plus screenshots of the network and of `out`

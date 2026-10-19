@@ -216,6 +216,22 @@ bands.
 
 ---
 
+## D11. Visual style: outlines before the mosh, motion analysis on the raw camera (decided)
+
+Sohum wanted the piece to be about movement, not to look like his room.
+A stylize pass turns the camera image into thresholded Sobel outlines.
+Moving edges are bright and static edges dim (`uStaticLevel`), and the
+outlines can be broken into a dot grid for a scanner-like look. Outlines
+are coloured by the subject mask, which separates the performer from the
+room like depth would.
+
+**Order.** Stylize runs *before* mosh, so the datamosh smears outlines,
+which reads as line trails. The motion pass still runs on the raw camera:
+outline images are mostly black, with few gradients, and would make
+Lucas-Kanade motion estimates far less reliable.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows
