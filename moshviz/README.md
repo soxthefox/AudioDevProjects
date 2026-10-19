@@ -39,7 +39,7 @@ python3 -m venv .venv && .venv/bin/pip install -r features/requirements.txt
 .venv/bin/python features/evaluate.py recordings/             # compare polyphony measures
 ```
 
-TouchDesigner setup and what you should see: [td/README.md](td/README.md).
+TouchDesigner setup: [td/WALKTHROUGH.md](td/WALKTHROUGH.md) (beginner, step by step) or [td/README.md](td/README.md) (compact reference).
 
 ## Layout
 
