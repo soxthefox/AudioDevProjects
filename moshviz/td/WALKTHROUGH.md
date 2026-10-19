@@ -130,7 +130,7 @@ It stands in for you until the Kinect works.
    The reliable way is the Textport (**Dialogs → Textport and DATs**).
    Paste with no leading space; it runs from the root, hence the full paths:
    ```python
-   p = '/project1/'; m = op(p + 'mosh'); [m.inputConnectors[0].disconnect() for _ in range(len(m.inputs))]; [op(p + n).outputConnectors[0].connect(m) for n in ('cam', 'mosh_fb', 'mask_stub', 'rows', 'motion')]
+   p = '/project1/'; op(p + 'mosh').setInputs([op(p + n) for n in ('cam', 'mosh_fb', 'mask_stub', 'rows', 'motion')])
    ```
    Check with `[i.name for i in op('/project1/mosh').inputs]`.
 4. `mosh` **Common** page: set **Pixel Format** to **16-bit float (RGBA)**.
