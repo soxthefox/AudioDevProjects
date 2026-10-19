@@ -1,0 +1,40 @@
+name: Multivoicer CI
+
+on:
+  push:
+    paths:
+      - 'multivoicer/**'
+      - '.github/workflows/multivoicer-ci.yml'
+  pull_request:
+    paths:
+      - 'multivoicer/**'
+      - '.github/workflows/multivoicer-ci.yml'
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S multivoicer -B multivoicer/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build plugin (VST3 + Standalone everywhere; AU on macOS)
+        run: cmake --build multivoicer/build --config Release
+
+      - name: Test
+        run: ctest --test-dir multivoicer/build -C Release --output-on-failure
+
+      # Mac job uploads downloadable artifacts so the M1 doesn't have to compile.
+      - name: Upload macOS plugins
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Multivoicer-macOS
+          path: |
+            multivoicer/build/Multivoicer_artefacts/Release/VST3/Multivoicer.vst3
+            multivoicer/build/Multivoicer_artefacts/Release/AU/Multivoicer.component
