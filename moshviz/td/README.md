@@ -22,7 +22,7 @@ videodevicein1 ─► cam (Null) ─┬─────────────�
                               └─► mosh_fb (Feedback, Target TOP = mosh) ─► mosh wired input 1
 mask_stub (Circle TOP, white disc on black) ───────────────────► mosh wired input 2
 oscin1 (OSC In CHOP, port 9000) ─► rows_sel (Select CHOP) ─► rows (CHOP to TOP) ─► mosh input 3 (TOPs parameter)
-mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
+mosh ─► look (GLSL; input 1 = motion) ─► out (Null) ─► moviefileout1 (for the demo, later)
 ```
 
 | Operator | Settings |
@@ -35,6 +35,8 @@ mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 | `rows_sel` (Select CHOP) | CHOPs: empty (fed by the wire). Channel Names: `moshviz/row/*`, so only the 24 strip channels pass through |
 | `rows` (CHOP to TOP) | Data Format: R. Pixel Format: 32-bit float. This gives a 1 × 24 texture, one row per channel |
 | `mosh` (GLSL TOP) | Wired inputs: `cam`, `mosh_fb`, `mask_stub` (a GLSL TOP takes at most 3 wired inputs). **TOPs**: `rows motion`, which become inputs 3 and 4. Input Extend Mode UV: Hold. Pixel Shader: `mosh_pixel`. Output Resolution: same as `cam`. Pixel Format: 16-bit float (RGBA) or higher, because repeated feedback in 8-bit loses colour detail |
+
+`look` (GLSL TOP): inputs `mosh`, `motion`; Pixel Shader `shaders/look.glsl`; 16-bit float. Its uniforms and starting values are listed in [WALKTHROUGH.md](WALKTHROUGH.md), Step 6b. `mosh` writes the per-block audio amount into its output alpha for `look` to use.
 
 `mosh` uniforms (Vectors page; name in the left field, value in x):
 

@@ -1,0 +1,67 @@
+// moshviz look pass: colour grade plus an audio-reactive motion glow.
+//
+// GLSL TOP setup:
+//   input 0: mosh  (RGB = moshed image, A = per-block audio amount)
+//   input 1: motion (per-block motion vectors, 32-bit float)
+//   Pixel Format: 16-bit float (RGBA). Output resolution: same as input 0.
+//
+// The glow draws the motion field the way optical-flow papers do (Baker et
+// al., "A Database and Evaluation Methodology for Optical Flow", 2011): hue
+// = direction of motion, brightness = speed. Each macroblock is a flat
+// tile, so the glow shows the same blocks the datamosh moves.
+
+uniform float uBrightness;      // added after contrast, e.g. -0.1 for a darker base
+uniform float uContrast;        // 1 = unchanged; > 1 = punchier
+uniform float uSaturation;      // 1 = unchanged; 0 = greyscale
+uniform float uDuotone;         // 0 = natural colour; 1 = fully mapped to the two tint colours
+uniform vec3  uShadowTint;      // duotone colour for dark tones, e.g. (0.05, 0.0, 0.15)
+uniform vec3  uHighlightTint;   // duotone colour for bright tones, e.g. (1.0, 0.75, 0.6)
+uniform float uMotionGlow;      // glow strength with no audio; 0 = off
+uniform float uGlowAudio;       // extra glow per unit of audio amount
+uniform float uMotionScalePx;   // speed (px/frame) shown at full brightness, e.g. 3
+uniform float uMotionFloorPx;   // speeds below this show no glow (hides camera noise), e.g. 0.3
+
+const int IMAGE = 0;
+const int MOTION = 1;
+const vec3 REC709_LUMA = vec3(0.2126, 0.7152, 0.0722);
+const float MID_GREY = 0.5;       // pivot for the contrast curve
+const float TAU = 6.28318530718;
+
+out vec4 fragColor;
+
+vec3 grade(vec3 c)
+{
+    float luma = dot(c, REC709_LUMA);
+    c = mix(vec3(luma), c, uSaturation);
+    c = (c - MID_GREY) * uContrast + MID_GREY + uBrightness;
+    c = max(c, 0.0);
+    vec3 duotone = mix(uShadowTint, uHighlightTint, clamp(dot(c, REC709_LUMA), 0.0, 1.0));
+    return mix(c, duotone, uDuotone);
+}
+
+// Fully saturated colour for a hue in [0, 1): a cosine approximation of the
+// HSV hue wheel, smooth enough for a visualisation.
+vec3 hueColour(float hue)
+{
+    return 0.5 + 0.5 * cos(TAU * (hue + vec3(0.0, -1.0 / 3.0, 1.0 / 3.0)));
+}
+
+vec3 motionGlow(vec2 uv, float audioAmount)
+{
+    ivec2 block = ivec2(uv * uTD2DInfos[MOTION].res.zw);
+    vec2 v = texelFetch(sTD2DInputs[MOTION], block, 0).xy;
+    float speed = length(v);
+    float visible = smoothstep(uMotionFloorPx, max(uMotionScalePx, uMotionFloorPx + 1e-3), speed);
+    float hue = atan(v.y, v.x) / TAU + 0.5;   // direction -> 0..1
+    float strength = uMotionGlow + uGlowAudio * audioAmount;
+    return hueColour(hue) * visible * strength;
+}
+
+void main()
+{
+    vec2 uv = vUV.st;
+    vec4 image = texture(sTD2DInputs[IMAGE], uv);
+    // Additive glow: light added on top of the graded image, as a screen would.
+    vec3 colour = grade(image.rgb) + motionGlow(uv, image.a);
+    fragColor = TDOutputSwizzle(vec4(colour, 1.0));
+}

@@ -15,6 +15,8 @@
 // dragged along new motion. This pass does that per strip: where a strip's
 // amount is high, the output is the previous output displaced by the block
 // motion, not the live frame. The subject mask always shows the live frame.
+//
+// Output alpha is the per-block audio amount, not opacity (see the end of main).
 
 uniform float uDisplacement;  // gain on motion vectors (1 = codec-like; > 1 exaggerates)
 uniform float uMaxMotionPx;   // clamp on per-frame displacement, in pixels
@@ -128,5 +130,9 @@ void main()
 
     float subject = smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather,
                                texture(sTD2DInputs[MASK], uv).r);
-    fragColor = TDOutputSwizzle(mix(background, live, subject));
+    // RGB is the image. Alpha carries this block's audio amount (0 on the
+    // subject) for look.glsl, which uses it to drive the motion glow;
+    // look.glsl sets alpha back to 1 for display and recording.
+    vec3 colour = mix(background.rgb, live.rgb, subject);
+    fragColor = TDOutputSwizzle(vec4(colour, amount * (1.0 - subject)));
 }

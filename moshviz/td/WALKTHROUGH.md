@@ -170,6 +170,37 @@ affect the **bottom** bands (expected) or the top.
 
 Save (Cmd+S).
 
+## Step 6b: Look pass (colour grade + motion glow)
+
+`mosh` output alpha carries the audio amount, so its own viewer may look
+partly transparent. That is expected; `look` turns it back into a normal
+image.
+
+1. Tab → TOP → **GLSL**. Rename it **`look`**. In its `_pixel` DAT, set
+   **File** to `shaders/look.glsl`, with Sync to File on.
+2. Wire inputs: 0 `mosh`, 1 `motion`.
+3. Rewire `out` so its input is `look` instead of `mosh` (drag from
+   `look`'s output onto `out`; this replaces the old wire).
+4. `look` **Common** page: **Pixel Format** 16-bit float (RGBA). **GLSL**
+   page: click **Load** (Load Uniform Names).
+5. **Vectors** page values (the tints use x, y, z as red, green, blue):
+
+   | Uniform Name | value |
+   |---|---|
+   | `uBrightness` | -0.1 |
+   | `uContrast` | 1.3 |
+   | `uSaturation` | 0.6 |
+   | `uDuotone` | 0 (try 0.7) |
+   | `uShadowTint` | 0.05, 0.0, 0.15 |
+   | `uHighlightTint` | 1.0, 0.75, 0.6 |
+   | `uMotionGlow` | 0.3 |
+   | `uGlowAudio` | 1.5 |
+   | `uMotionScalePx` | 3 |
+   | `uMotionFloorPx` | 0.3 |
+
+✅ `out` shows a darker, punchier image. Moving makes coloured blocks glow
+(colour = direction of movement), and they glow brighter while music plays.
+
 ## Step 7: Live guitar
 
 ```bash
