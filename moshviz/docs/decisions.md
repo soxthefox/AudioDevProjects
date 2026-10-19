@@ -281,6 +281,25 @@ frames ago without knowing TouchDesigner's internal write index.
 
 ---
 
+## D13. Video files: the audio is the master clock (decided)
+
+To run a show recording, the service plays the file's audio and analyses
+exactly the samples it hands to the sound card; each OSC bundle carries
+the playback position (`/moshviz/time`). The Movie File In TOP is set to
+*Specify Index* in seconds, following that value. This is how media
+players keep A/V sync: the audio device's clock is steady and drift-free,
+while video frames can be repeated or skipped without being noticed.
+Two independent players (TouchDesigner's movie clock and the service's
+timer) would drift apart over a clip.
+
+Audio is decoded from the video container with PyAV, so no separate
+extraction step and no system ffmpeg are needed. MediaPipe on macOS only
+takes a webcam, so file input runs without a performer mask, and the
+clones pass is bypassed. The project cook rate is set to the clip's frame
+rate (25.63 fps), for the same reason as the 30 fps camera lock.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

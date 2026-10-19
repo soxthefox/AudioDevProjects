@@ -82,7 +82,8 @@ python3 -m venv .venv && .venv/bin/pip install -r features/requirements.txt
 .venv/bin/python features/service.py --list-devices
 .venv/bin/python features/service.py --device "MacBook Air Microphone"
 .venv/bin/python features/service.py --device "<interface>" --channel 0   # guitar
-.venv/bin/python features/service.py --file take.wav --loop              # recording
+.venv/bin/python features/service.py --file take.wav --loop              # recording (silent)
+.venv/bin/python features/service.py --file show.mov --play --loop        # play a video's audio as the clock
 ```
 
 The service logs level, polyphony, onset and strip amounts every 2 s.
@@ -99,6 +100,13 @@ match the camera. Then, in the Textport (Dialogs → Textport and DATs):
 exec(open(project.folder + '/scripts/mediapipe_settings.py').read())   # segmentation only
 exec(open(project.folder + '/scripts/wiring.py').read())               # check/repair all connections
 exec(open(project.folder + '/scripts/uniforms.py').read())             # apply all shader values
+```
+
+To run on a video file instead of the camera (no performer mask, clones
+off; the movie follows the audio clock):
+
+```python
+MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
 ```
 
 To unplug or plug in the clones pass:

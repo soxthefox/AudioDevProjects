@@ -4,11 +4,25 @@ Apply from the Textport (Dialogs -> Textport and DATs):
 
     exec(open(project.folder + '/scripts/wiring.py').read())
 
+To switch the input, set MOSHVIZ_SOURCE first (it stays set for later runs
+in the same TouchDesigner session):
+
+    MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
+    MOSHVIZ_SOURCE = 'camera'; exec(open(project.folder + '/scripts/wiring.py').read())
+
 For every operator below, it compares the wired inputs and the operator
 references (Feedback targets, Select sources, GLSL extra TOPs) with this
 file, prints each difference it finds, and fixes it. Run it whenever the
 network misbehaves: a wire accidentally dropped onto the wrong node, for
 example, creates a cook loop that turns everything black.
+
+SOURCE picks the input:
+  'camera'  live webcam through MediaPipe, with the performer mask and clones.
+  'movie'   a video file (MOVIE_FILE). MediaPipe on macOS only takes a webcam,
+            so there is no performer mask: everyone moshes (the dance-floor
+            case) and the clones pass is bypassed. The movie follows the
+            audio clock: run the service with --file <same file> --play, and
+            the movie shows the frame at /moshviz/time.
 
 Paths in WIRED and PARS are relative to NETWORK. Operators in CREATE are
 made if missing (the others are built by hand, see WALKTHROUGH.md).
@@ -16,27 +30,43 @@ made if missing (the others are built by hand, see WALKTHROUGH.md).
 
 NETWORK = '/project1'
 
+SOURCE = globals().get('MOSHVIZ_SOURCE', 'camera')   # 'camera' or 'movie'
+MOVIE_FILE = '../recordings/IMG_1422.MOV'   # relative to the .toe (recordings/ is gitignored)
+
+# The cook rate must match the source's frame rate. Otherwise some frames
+# repeat the previous image, the motion pass sees zero motion on them, and
+# the mosh and glow flicker (measured: 43 uneven fps with a 30 fps camera
+# and a 60 fps project).
+CAMERA_FPS = 30.0
+MOVIE_FPS = 25.63   # IMG_1422.MOV average frame rate, read with PyAV
+
 HISTORY_FRAMES = 32
 """Frames of history kept for time-delayed clones (about 1 s at 30 fps)."""
+
+USE_MOVIE = SOURCE == 'movie'
+VIDEO = 'movie' if USE_MOVIE else 'mp_video'
+SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
 
 # Operators the script creates if they do not exist: name -> operator type.
 CREATE = {
     'history_image': 'texture3dTOP',
     'history_mask': 'texture3dTOP',
+    'movie': 'moviefileinTOP',
+    'no_mask': 'constantTOP',
 }
 
 # Wired inputs, in input order. A GLSL TOP takes at most three wired inputs.
 WIRED = {
-    'cam': ['mp_video'],
+    'cam': [VIDEO],
     'prev_cam': ['cam'],
     'motion': ['cam', 'prev_cam'],
-    'stylize': ['cam', 'motion', 'mask'],
+    'stylize': ['cam', 'motion', SUBJECT_MASK],
     'mosh_fb': ['stylize'],
-    'mosh': ['stylize', 'mosh_fb', 'mask'],
+    'mosh': ['stylize', 'mosh_fb', SUBJECT_MASK],
     'look': ['mosh', 'motion'],
     'history_image': ['look'],
-    'history_mask': ['mask'],
-    'clones': ['look', 'history_image', 'history_mask'],   # optional; bypass to unplug
+    'history_mask': [SUBJECT_MASK],
+    'clones': ['look', 'history_image', 'history_mask'],
     'out': ['clones'],
 }
 
@@ -47,20 +77,38 @@ PARS = {
     'prev_cam': {'top': 'cam'},                                # Feedback TOP target
     'mosh_fb': {'top': 'mosh'},                                # Feedback TOP target
     'mosh': {'tops': 'rows motion'},                           # GLSL inputs 3 and 4
-    'clones': {'tops': 'mask'},                                # live mask, input 3
+    'clones': {'tops': SUBJECT_MASK},                          # live mask, input 3
     'rows': {'chop': 'rows_sel'},                              # CHOP to TOP source
 }
 
-# History nodes: a ring buffer whose write slot is set explicitly to
-# frame mod HISTORY_FRAMES, so clones.glsl can find the frame from N frames ago.
-HISTORY_PARS = {
+# Constant settings of created operators.
+HISTORY_SETTINGS = {
     'type': 'texture2darray',
     'cachesize': HISTORY_FRAMES,
     'replacesingle': True,
 }
-HISTORY_EXPRESSIONS = {
-    'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAMES),
+SETTINGS = {
+    'history_image': HISTORY_SETTINGS,
+    'history_mask': HISTORY_SETTINGS,
+    'movie': {'file': MOVIE_FILE, 'playmode': 'specify', 'indexunit': 'seconds'},
+    'no_mask': {'colorr': 0.0, 'colorg': 0.0, 'colorb': 0.0, 'alpha': 1.0},
 }
+
+# Expression settings of created operators.
+#  - History nodes are ring buffers whose write slot is set explicitly to
+#    frame mod HISTORY_FRAMES, so clones.glsl can find the frame from N frames ago.
+#  - The movie shows the frame at the audio playback position (0 until the
+#    service sends it).
+_TIME = "op('oscin1')['moshviz/time']"
+HISTORY_EXPRESSIONS = {'replaceindex': 'absTime.frame % {}'.format(HISTORY_FRAMES)}
+EXPRESSIONS = {
+    'history_image': HISTORY_EXPRESSIONS,
+    'history_mask': HISTORY_EXPRESSIONS,
+    'movie': {'index': '{0}.eval() if {0} is not None else 0'.format(_TIME)},
+}
+
+# Operators bypassed in the current SOURCE mode (bypassed TOPs pass input 0 through).
+BYPASSED = {'clones': USE_MOVIE}
 
 
 def _create_missing(network):
@@ -71,19 +119,24 @@ def _create_missing(network):
             parent.create(eval(op_type), name)  # e.g. texture3dTOP, a TouchDesigner built-in
 
 
-def _check_history(network):
-    for name in CREATE:
+def _check_settings(network):
+    for name, settings in SETTINGS.items():
         node = op(network + '/' + name)
         if node is None:
             continue
-        for par_name, value in HISTORY_PARS.items():
+        for par_name, value in settings.items():
             par = getattr(node.par, par_name, None)
             if par is None:
                 print('wiring: {} has no parameter {}'.format(name, par_name))
             elif par.eval() != value:
                 print('wiring: {}.{} {!r} -> {!r}'.format(name, par_name, par.eval(), value))
+                par.mode = ParMode.CONSTANT
                 par.val = value
-        for par_name, expression in HISTORY_EXPRESSIONS.items():
+    for name, expressions in EXPRESSIONS.items():
+        node = op(network + '/' + name)
+        if node is None:
+            continue
+        for par_name, expression in expressions.items():
             par = getattr(node.par, par_name, None)
             if par is None:
                 print('wiring: {} has no parameter {}'.format(name, par_name))
@@ -123,12 +176,33 @@ def _check_pars(network):
                 par.val = value
 
 
+def _check_bypass(network):
+    for name, bypassed in BYPASSED.items():
+        node = op(network + '/' + name)
+        if node is not None and node.bypass != bypassed:
+            print('wiring: {} bypass -> {}'.format(name, bypassed))
+            node.bypass = bypassed
+
+
+def _check_cook_rate():
+    rate = MOVIE_FPS if USE_MOVIE else CAMERA_FPS
+    if abs(project.cookRate - rate) > 1e-3:
+        print('wiring: cook rate {} -> {}'.format(project.cookRate, rate))
+        project.cookRate = rate
+
+
 def apply(network=NETWORK):
+    if SOURCE not in ('camera', 'movie'):
+        print("wiring: MOSHVIZ_SOURCE must be 'camera' or 'movie', not {!r}".format(SOURCE))
+        return
+    _check_cook_rate()
     _create_missing(network)
     _check_wiring(network)
     _check_pars(network)
-    _check_history(network)
-    print('wiring: checked {} operators'.format(len(set(WIRED) | set(PARS) | set(CREATE))))
+    _check_settings(network)
+    _check_bypass(network)
+    print('wiring: source {}, checked {} operators'.format(
+        SOURCE, len(set(WIRED) | set(PARS) | set(CREATE))))
 
 
 apply()

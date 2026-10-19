@@ -3,7 +3,10 @@
 Usage:
     python service.py --list-devices
     python service.py --device "Scarlett" --channel 0
-    python service.py --file take.wav          # replay a recording in real time
+    python service.py --file take.wav          # replay a recording in real time (silent)
+    python service.py --file show.mov --play   # play a recording (audio or video file) and
+                                               # analyse what is playing; TouchDesigner can
+                                               # follow /moshviz/time to keep a video in sync
 
 OSC sent to TouchDesigner (default 127.0.0.1:9000), one bundle per hop:
     /moshviz/row/00 ... /moshviz/row/NN   per-strip mosh amount, 0..1
@@ -12,6 +15,8 @@ OSC sent to TouchDesigner (default 127.0.0.1:9000), one bundle per hop:
     /moshviz/pitch                         Hz, 0 when unvoiced
     /moshviz/level                         dBFS
     /moshviz/seq                           hop counter (for latency checks)
+    /moshviz/time                          seconds of audio analysed so far (with --play:
+                                           the playback position, used as the video clock)
 
 OSC received (default port 9001), for live tuning from TouchDesigner:
     /moshviz/param/<name> <float>          any field of mapping.MappingParams
@@ -25,6 +30,7 @@ import queue
 import threading
 import time
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 from pythonosc import dispatcher, osc_bundle_builder, osc_message_builder, osc_server, udp_client
@@ -41,7 +47,15 @@ QUEUE_MAX_BLOCKS = 64
 """About 340 ms of audio at the default hop. If the worker falls this far behind, drop blocks."""
 
 
-def build_bundle(features: Features, rows: np.ndarray, seq: int) -> osc_bundle_builder.OscBundle:
+class Block(NamedTuple):
+    """One hop of mono audio and the stream time (seconds) at its start."""
+
+    samples: np.ndarray
+    time_s: float
+
+
+def build_bundle(features: Features, rows: np.ndarray, seq: int,
+                 time_s: float = 0.0) -> osc_bundle_builder.OscBundle:
     """Pack one hop of features into an OSC bundle (sent immediately)."""
     bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
 
@@ -57,6 +71,7 @@ def build_bundle(features: Features, rows: np.ndarray, seq: int) -> osc_bundle_b
     add("pitch", features.pitch_hz)
     add("level", features.level_db)
     add("seq", seq)
+    add("time", time_s)
     return bundle.build()
 
 
@@ -89,17 +104,17 @@ class ParamServer:
             return MappingParams(**vars(self._params))
 
 
-def run_worker(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfig,
+def run_worker(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
                params: ParamServer, client: udp_client.UDPClient) -> None:
     """Consume audio blocks, compute features, send OSC. Returns on a None block."""
     extractor = FeatureExtractor(config)
     hops_per_status = max(1, round(STATUS_INTERVAL_S / config.hop_s))
     seq = 0
     while (block := blocks.get()) is not None:
-        features = extractor.process(block)
+        features = extractor.process(block.samples)
         rows = row_amounts(features.bands, features.polyphony, features.onset,
                            params.snapshot(), level_db=features.level_db)
-        client.send(build_bundle(features, rows, seq))
+        client.send(build_bundle(features, rows, seq, block.time_s))
         if seq % hops_per_status == 0:
             log.info("level %6.1f dBFS  polyphony %.2f  onset %.2f  rows mean %.2f max %.2f",
                      features.level_db, features.polyphony, features.onset,
@@ -107,17 +122,25 @@ def run_worker(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfig,
         seq += 1
 
 
-def stream_device(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfig,
+def _enqueue(blocks: "queue.Queue[Block | None]", block: Block) -> None:
+    try:
+        blocks.put_nowait(block)
+    except queue.Full:
+        log.warning("feature worker is behind; dropping a block")
+
+
+def stream_device(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
                   device: str | int | None, channel: int) -> None:
     import sounddevice as sd  # imported here so --file works without PortAudio
 
+    frames_seen = 0
+
     def callback(indata: np.ndarray, frames: int, _time: object, status: sd.CallbackFlags) -> None:
+        nonlocal frames_seen
         if status:
             log.warning("audio status: %s", status)
-        try:
-            blocks.put_nowait(indata[:, channel].astype(np.float64))
-        except queue.Full:
-            log.warning("feature worker is behind; dropping a block")
+        _enqueue(blocks, Block(indata[:, channel].astype(np.float64), frames_seen / config.sample_rate))
+        frames_seen += frames
 
     with sd.InputStream(device=device, channels=channel + 1, samplerate=config.sample_rate,
                         blocksize=config.hop, dtype="float32", latency="low",
@@ -128,24 +151,88 @@ def stream_device(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfi
             time.sleep(1.0)
 
 
-def stream_file(blocks: "queue.Queue[np.ndarray | None]", config: FeatureConfig,
-                path: Path, loop: bool) -> None:
-    """Feed a sound file in at the real-time rate, as if it were live input."""
+def load_audio(path: Path, sample_rate: float) -> np.ndarray:
+    """Read a sound or video file as float64 (frames, channels) at ``sample_rate``.
+
+    Sound files go through soundfile. Anything soundfile cannot read (for
+    example the AAC track of a .mov) is decoded and resampled with PyAV.
+    """
     import soundfile as sf
 
-    audio, sr = sf.read(path, dtype="float64", always_2d=True)
-    if sr != config.sample_rate:
-        raise SystemExit(f"{path} is {sr} Hz; rerun with --sample-rate {sr}")
-    mono = audio.mean(axis=1)
-    log.info("replaying %s (%.1f s)%s", path, len(mono) / sr, " in a loop" if loop else "")
+    try:
+        audio, sr = sf.read(path, dtype="float64", always_2d=True)
+        if sr != sample_rate:
+            raise SystemExit(f"{path} is {sr} Hz; rerun with --sample-rate {sr}")
+        return audio
+    except sf.LibsndfileError:
+        pass
+
+    import av
+
+    with av.open(str(path)) as container:
+        stream = container.streams.audio[0]
+        resampler = av.AudioResampler(format="flt", layout="stereo", rate=int(sample_rate))
+        chunks = []
+        for frame in container.decode(stream):
+            for out in resampler.resample(frame):
+                chunks.append(out.to_ndarray().reshape(-1, 2))  # packed float: interleaved L, R
+        for out in resampler.resample(None):  # flush
+            chunks.append(out.to_ndarray().reshape(-1, 2))
+    return np.concatenate(chunks).astype(np.float64)
+
+
+def stream_file(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
+                path: Path, loop: bool) -> None:
+    """Feed a file in at the real-time rate, as if it were live input (silent)."""
+    mono = load_audio(path, config.sample_rate).mean(axis=1)
+    log.info("replaying %s (%.1f s)%s", path, len(mono) / config.sample_rate,
+             " in a loop" if loop else "")
     next_time = time.perf_counter()
     while True:
         for start in range(0, len(mono) - config.hop + 1, config.hop):
-            blocks.put(mono[start:start + config.hop])
+            blocks.put(Block(mono[start:start + config.hop], start / config.sample_rate))
             next_time += config.hop_s
             time.sleep(max(0.0, next_time - time.perf_counter()))
         if not loop:
             return
+
+
+def play_file(blocks: "queue.Queue[Block | None]", config: FeatureConfig,
+              path: Path, loop: bool) -> None:
+    """Play a file through the default output and analyse exactly what is played.
+
+    The output callback is the clock: each hop it hands to the sound card is
+    also queued for analysis, stamped with its position in the file. Video
+    that follows /moshviz/time therefore stays in sync with the sound.
+    """
+    import sounddevice as sd
+
+    audio = load_audio(path, config.sample_rate).astype(np.float32)
+    total = len(audio)
+    position = 0
+    finished = threading.Event()
+
+    def callback(outdata: np.ndarray, frames: int, _time: object, status: sd.CallbackFlags) -> None:
+        nonlocal position
+        if status:
+            log.warning("audio status: %s", status)
+        if position + frames > total:
+            if not loop:
+                outdata.fill(0.0)
+                finished.set()
+                raise sd.CallbackStop
+            position = 0
+        chunk = audio[position:position + frames]
+        outdata[:] = chunk
+        _enqueue(blocks, Block(chunk.mean(axis=1).astype(np.float64), position / config.sample_rate))
+        position += frames
+
+    with sd.OutputStream(samplerate=config.sample_rate, channels=audio.shape[1], blocksize=config.hop,
+                         dtype="float32", latency="low", callback=callback) as stream:
+        log.info("playing %s (%.1f s)%s, output latency %.1f ms", path, total / config.sample_rate,
+                 " in a loop" if loop else "", stream.latency * 1e3)
+        while not finished.wait(0.5):
+            pass
 
 
 def main() -> None:
@@ -155,6 +242,8 @@ def main() -> None:
     parser.add_argument("--channel", type=int, default=0, help="0-based input channel of the guitar")
     parser.add_argument("--file", type=Path, help="replay a sound file instead of live input")
     parser.add_argument("--loop", action="store_true", help="with --file: loop forever")
+    parser.add_argument("--play", action="store_true",
+                        help="with --file: play the audio and analyse what is playing (audio clock)")
     parser.add_argument("--sample-rate", type=float, default=FeatureConfig.sample_rate)
     parser.add_argument("--bands", type=int, default=FeatureConfig.n_bands, help="number of row strips")
     parser.add_argument("--osc-host", default="127.0.0.1")
@@ -173,11 +262,13 @@ def main() -> None:
     client = udp_client.UDPClient(args.osc_host, args.osc_port)
     log.info("sending OSC to %s:%d (%d strips)", args.osc_host, args.osc_port, config.n_bands)
 
-    blocks: "queue.Queue[np.ndarray | None]" = queue.Queue(maxsize=QUEUE_MAX_BLOCKS)
+    blocks: "queue.Queue[Block | None]" = queue.Queue(maxsize=QUEUE_MAX_BLOCKS)
     worker = threading.Thread(target=run_worker, args=(blocks, config, params, client), daemon=True)
     worker.start()
     try:
-        if args.file:
+        if args.file and args.play:
+            play_file(blocks, config, args.file, args.loop)
+        elif args.file:
             stream_file(blocks, config, args.file, args.loop)
         else:
             device = int(args.device) if args.device and args.device.isdigit() else args.device

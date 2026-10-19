@@ -323,6 +323,36 @@ shrink), `uHorizon` (vanishing-point height), `uFog` (fade with distance),
 `uRowDelayFrames` / `uColumnDelayFrames` (the ripple; 0 = in sync). The
 total delay must stay under 32 frames (`HISTORY_FRAMES` in `wiring.py`).
 
+## Step 11: Run it on a video file (e.g. a show recording)
+
+The audio is the clock: the service plays the file's sound and analyses
+exactly what it plays, and the movie shows the frame at that moment
+(`/moshviz/time`), so sound and picture cannot drift. MediaPipe on macOS
+only takes a webcam, so with a file there is **no performer mask**:
+everyone moshes (the dance-floor case), and clones are bypassed.
+
+1. Put the clip in `moshviz/recordings/` (gitignored). For another clip,
+   change `MOVIE_FILE` and `MOVIE_FPS` in `scripts/wiring.py`.
+2. Terminal (stop any other running service first: only one can use the
+   OSC ports):
+   ```bash
+   .venv/bin/python features/service.py --file recordings/IMG_1422.MOV --play --loop
+   ```
+3. Textport: switch the network to the movie. This creates `movie`
+   (Movie File In) and `no_mask` (black), rewires `cam`, bypasses
+   `clones`, and sets the cook rate to the clip's 25.63 fps:
+   ```python
+   MOSHVIZ_SOURCE = 'movie'; exec(open(project.folder + '/scripts/wiring.py').read())
+   ```
+
+✅ You hear the show, and `out` shows it as outlines that mosh with the
+music: bass in the centre, highs at the edges.
+
+**Back to the camera:**
+```python
+MOSHVIZ_SOURCE = 'camera'; exec(open(project.folder + '/scripts/wiring.py').read())
+```
+
 ## If the network misbehaves
 
 `scripts/wiring.py` holds every connection in the network. It reports any
