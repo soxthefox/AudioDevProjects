@@ -91,13 +91,24 @@ SOURCE_OVERRIDES = {
             'uExposure': (3.0,),
             'uGamma': (0.6,),
             'uRelativeEdges': (1.0,),
-            'uContrastFloor': (0.05,),
-            'uEdgeThreshold': (0.25,),
+            # Higher floor: at 0.05, relative edges amplified the HEVC
+            # compression blocking in dark areas into a visible grid.
+            'uContrastFloor': (0.12,),
+            'uEdgeThreshold': (0.2,),
+            'uEdgeScalePx': (2.0,),
+            # People on stage move less than the lights; keep still
+            # outlines bright so they stay readable.
+            'uStaticLevel': (0.7,),
             'uImageLevel': (0.0,),    # no photographic overlay
             # Stage lighting comes back as light only: the bright parts in
             # their own colour, with a glow, and lines tinted by the scene.
             'uLightLevel': (1.2,),
-            'uLineTint': (0.5,),
+            'uLineTint': (0.3,),
+        },
+        'mosh': {
+            # Heal moshed blocks faster so people's outlines re-form
+            # instead of dissolving into trails.
+            'uRefresh': (0.15,),
         },
     },
 }

@@ -286,6 +286,8 @@ def main() -> None:
                         help="with --file: play the audio and analyse what is playing (audio clock)")
     parser.add_argument("--sample-rate", type=float, default=FeatureConfig.sample_rate)
     parser.add_argument("--bands", type=int, default=FeatureConfig.n_bands, help="number of row strips")
+    parser.add_argument("--set", action="append", default=[], metavar="NAME=VALUE",
+                        help="start with a MappingParams value, e.g. --set threshold=0.7 (repeatable)")
     parser.add_argument("--osc-host", default="127.0.0.1")
     parser.add_argument("--osc-port", type=int, default=9000, help="TouchDesigner OSC In CHOP port")
     parser.add_argument("--param-port", type=int, default=9001, help="port for /moshviz/param/* messages")
@@ -298,7 +300,14 @@ def main() -> None:
         return
 
     config = FeatureConfig(sample_rate=args.sample_rate, n_bands=args.bands)
-    params = ParamServer(MappingParams(), "127.0.0.1", args.param_port)
+    mapping = MappingParams()
+    for assignment in args.set:
+        name, _, value = assignment.partition("=")
+        try:
+            mapping.set(name.strip(), float(value))
+        except (KeyError, ValueError):
+            parser.error(f"--set {assignment!r}: expected NAME=NUMBER with NAME in {MappingParams.names()}")
+    params = ParamServer(mapping, "127.0.0.1", args.param_port)
     client = udp_client.UDPClient(args.osc_host, args.osc_port)
     log.info("sending OSC to %s:%d (%d strips)", args.osc_host, args.osc_port, config.n_bands)
 

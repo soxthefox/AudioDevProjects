@@ -343,7 +343,7 @@ everyone moshes (the dance-floor case), and clones are bypassed.
 2. Terminal (stop any other running service first: only one can use the
    OSC ports):
    ```bash
-   .venv/bin/python features/service.py --file recordings/IMG_1422_2.MOV --play --loop
+   .venv/bin/python features/service.py --file recordings/IMG_1422_2.MOV --play --loop --set threshold=0.7
    ```
 3. Textport: switch the network to the movie. This creates `movie`
    (Movie File In) and `no_mask` (black), rewires `cam`, bypasses
