@@ -111,7 +111,7 @@ down gives **green**.
    confirmed). The preview is shades of **red** pulsing with the audio,
    because Data Format R uses only the red channel.
 
-## Step 5: Stand-in subject mask
+## Step 5: Stand-in subject mask ✔ done
 
 Tab → TOP → **Circle**. Rename it **`mask_stub`**: a white disc on black.
 It stands in for you until the Kinect works.
@@ -124,6 +124,15 @@ It stands in for you until the Kinect works.
    `mosh_fb`, and set its **Target TOP** to `mosh`.
 3. Connect into `mosh` in exactly this order:
    0 `cam`, 1 `mosh_fb`, 2 `mask_stub`, 3 `rows`, 4 `motion`.
+   Until all five are connected, `mosh` shows a red/blue checkerboard (the
+   shader asks for inputs that do not exist yet). Wiring five inputs by
+   dragging is fiddly: dropping a wire on a used connector replaces it.
+   The reliable way is the Textport (**Dialogs → Textport and DATs**).
+   Paste with no leading space; it runs from the root, hence the full paths:
+   ```python
+   p = '/project1/'; m = op(p + 'mosh'); [m.inputConnectors[0].disconnect() for _ in range(len(m.inputs))]; [op(p + n).outputConnectors[0].connect(m) for n in ('cam', 'mosh_fb', 'mask_stub', 'rows', 'motion')]
+   ```
+   Check with `[i.name for i in op('/project1/mosh').inputs]`.
 4. `mosh` **Common** page: set **Pixel Format** to **16-bit float (RGBA)**.
    Leave the resolution as it is. On the **GLSL** page, set **Input Extend
    Mode UV** to **Hold** and click **Load** (Load Uniform Names).
