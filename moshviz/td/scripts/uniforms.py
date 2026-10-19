@@ -23,7 +23,7 @@ UNIFORMS = {
         'uMaxMotionPx': (16.0,),
         'uRefresh': (0.05,),
         'uMaskFeather': (0.1,),
-        'uMaskInvert': (1.0,),
+        'uMaskInvert': (0.0,),  # image_segmentation/selfie_mask is white = person
         'uThresholdSoftness': (0.05,),
         'uReseedFrames': (0.0,),
         'uFrame': 'absTime.frame',

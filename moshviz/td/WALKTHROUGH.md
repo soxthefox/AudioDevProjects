@@ -239,10 +239,13 @@ The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
    ```python
    exec(open(project.folder + '/scripts/mediapipe_settings.py').read())
    ```
-   This turns segmentation on (background-only mask), and turns face,
-   hands, pose, objects, classification and embeddings off.
+   This turns segmentation on (normal multiclass mode, which the
+   `image_segmentation` component decodes), and turns face, hands, pose,
+   objects, classification and embeddings off.
 5. **Bring the mask out.** Tab → TOP → **Select**, renamed **`mask`**.
-   Set its **TOP** parameter to `/project1/MediaPipe/seg_data`.
+   Set its **TOP** parameter to `/project1/image_segmentation/selfie_mask`
+   (white = you, full resolution, upright). `MediaPipe/seg_data` does not
+   update in this setup.
    ✅ A white silhouette of you on black (soft, grey edges are fine).
 6. **Use it.** In `mosh`, replace input 2 (`mask_stub`) with `mask`: drag
    from `mask`'s output onto the connector that `mask_stub` uses (dropping
@@ -253,10 +256,10 @@ The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
    ✅ With music playing and you moving, the background moshes and your
    body stays clean. If edges look harsh, raise `uMaskFeather` in
    `scripts/uniforms.py`.
-7. **Line up picture and mask** (optional, next session). If the mask
-   lags behind or is offset from your body, feed `cam` from the MediaPipe
-   node's video output instead of `video_in`, so both come from the same
-   frames.
+7. **Line up picture and mask.** Feed `cam` from the frame the mask was
+   computed from, so they never drift apart: a Select TOP **`mp_video`**
+   with **TOP** = `/project1/image_segmentation/original_video`, wired into
+   `cam` in place of `video_in`.
 
 ## Send back to Claude
 

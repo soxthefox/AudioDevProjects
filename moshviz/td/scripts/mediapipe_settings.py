@@ -6,9 +6,12 @@ Apply from the Textport (Dialogs -> Textport and DATs):
 
 Plugin: torinmb/mediapipe-touchdesigner v0.6.0 (td/vendor/, gitignored).
 Parameter names were read from the plugin's custom parameters on 19 Oct 2026.
-The only segmentation model in this version is Selfie Multiclass. With
-"background only" on, it outputs one channel where white = background, so
-mosh.glsl runs with uMaskInvert = 1 (see scripts/uniforms.py).
+The only segmentation model in this version is Selfie Multiclass. Keep it
+in its normal colour-coded multiclass mode: the image_segmentation
+component decodes that into separate masks, and moshviz uses its
+`selfie_mask` (white = person) plus `original_video`, the frame the mask
+was computed from. "Background only" mode sends a one-channel image that
+image_segmentation cannot decode, so its outputs freeze (seen 19 Oct 2026).
 """
 
 MEDIAPIPE = '/project1/MediaPipe'
@@ -16,7 +19,7 @@ MEDIAPIPE = '/project1/MediaPipe'
 SETTINGS = {
     # The only task we use: person segmentation for the subject mask.
     'Detectsegments': True,
-    'Sshowmulticlassbackgroundonly': True,
+    'Sshowmulticlassbackgroundonly': False,
     # Everything else costs CPU/GPU time and feeds nothing in moshviz.
     'Detectfacelandmarks': False,
     'Detectgestures': False,
