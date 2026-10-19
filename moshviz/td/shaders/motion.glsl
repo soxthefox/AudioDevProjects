@@ -24,6 +24,7 @@ uniform float uRegularisation;   // ridge term added to the 2x2 diagonal (luma^2
 const int CURRENT = 0;
 const int PREVIOUS = 1;
 const int SAMPLES_PER_AXIS = 4;  // 4 x 4 = 16 LK samples per block
+const float MIN_REGULARISATION = 1e-6;  // keeps det > 0 even if the uniform is unset (0)
 const vec3 REC709_LUMA = vec3(0.2126, 0.7152, 0.0722);
 
 out vec4 fragColor;
@@ -59,9 +60,10 @@ void main()
         }
     }
 
-    float a = sIxx + uRegularisation;
-    float d = sIyy + uRegularisation;
-    float det = a * d - sIxy * sIxy;   // > 0 because uRegularisation > 0
+    float ridge = max(uRegularisation, MIN_REGULARISATION);
+    float a = sIxx + ridge;
+    float d = sIyy + ridge;
+    float det = a * d - sIxy * sIxy;   // > 0 because ridge > 0
     // Closed-form 2x2 inverse: [d -b; -b a] / det.
     vec2 v = -vec2(d * sIxt - sIxy * sIyt, a * sIyt - sIxy * sIxt) / det;
 
