@@ -26,7 +26,8 @@ cd /Users/sohumdatta/repos/AudioDevProjects/.claude/worktrees/audio-reactive-dat
   the **left edge** of the next node.
 - **Parameters:** click a node and its settings appear in the parameter
   panel (press **P** if it is hidden). The tabs across the top of the panel
-  are pages (GLSL, Vectors, Common, ...).
+  are pages (GLSL, Vectors, Common, ...). If the panel is narrow, the tab
+  names are cut off (Common shows as `Comm`); click **»** or widen the panel.
 - **Rename:** click the name label under a node and type. Use the names
   given here exactly.
 - **Bigger preview:** right-click a node → **View…**
@@ -54,7 +55,7 @@ folder is hidden because its name starts with a dot):
 
 ✅ The `cam` thumbnail shows your camera image.
 
-## Step 2: Previous frame
+## Step 2: Previous frame ✔ done
 
 1. Tab → TOP → **Feedback**. Connect `cam` → Feedback, and rename it
    **`prev_cam`**.
@@ -63,7 +64,7 @@ folder is hidden because its name starts with a dot):
 
 ✅ It looks the same as `cam` (it is one frame behind).
 
-## Step 3: Motion pass (first shader)
+## Step 3: Motion pass (first shader) ✔ done
 
 1. Tab → TOP → **GLSL**. Rename it **`motion`**. TouchDesigner also creates
    small DATs next to it: click the one whose name ends in **`_pixel`**.
@@ -76,8 +77,10 @@ folder is hidden because its name starts with a dot):
 4. On `motion`:
    - **Common** page: set **Output Resolution** to *Custom Resolution*
      and **Resolution** to **160 × 90** (your 1280×720 camera ÷ 8 px blocks). Set **Pixel Format** to **32-bit float (RGBA)**.
-   - **Vectors** page: set **Uniform Name 0** to `uRegularisation`, value
-     x = `0.001`.
+   - **GLSL** page: set **Input Extend Mode UV** to **Hold** (with *Zero*,
+     the frame edges show fake motion). Click **Load** next to *Load Uniform
+     Names*: this fills in the uniform names from the shader.
+   - **Vectors** page: set the value of `uRegularisation` (first box) to `0.001`.
 
 ✅ No red X. Sitting still gives an almost black image. Waving a hand
 left and right gives blocky **red** patches in one direction, and up and
@@ -118,8 +121,9 @@ It stands in for you until the Kinect works.
 3. Connect into `mosh` in exactly this order:
    0 `cam`, 1 `mosh_fb`, 2 `mask_stub`, 3 `rows`, 4 `motion`.
 4. `mosh` **Common** page: set **Pixel Format** to **16-bit float (RGBA)**.
-   Leave the resolution as it is.
-5. `mosh` **Vectors** page: use **+** to add six rows:
+   Leave the resolution as it is. On the **GLSL** page, set **Input Extend
+   Mode UV** to **Hold** and click **Load** (Load Uniform Names).
+5. `mosh` **Vectors** page: the names should now be filled in. Set the values:
 
    | Uniform Name | value x |
    |---|---|
