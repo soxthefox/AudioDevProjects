@@ -55,7 +55,7 @@ SOURCE = globals().get('MOSHVIZ_SOURCE', 'camera')   # 'camera' or 'movie'
 # seeked every frame to follow the audio clock, and HEVC phone footage
 # stalls under that (it froze after a few seconds). The service still plays
 # the audio from the original file.
-MOVIE_FILE = '../recordings/IMG_1423_prores.mov'
+MOVIE_FILE = '../recordings/IMG_1423_cfr30.mov'
 
 # The cook rate must match the source's frame rate. Otherwise some frames
 # repeat the previous image, the motion pass sees zero motion on them, and
@@ -63,7 +63,9 @@ MOVIE_FILE = '../recordings/IMG_1423_prores.mov'
 # and a 60 fps project).
 CAMERA_FPS = 30.0
 MOVIE_FPS = 30.0   # tools/intra_frame.py writes constant 30 fps (the phone clip is variable rate)
-MOVIE_DURATION_S = 24.97   # IMG_1423_prores.mov, as printed by tools/intra_frame.py
+MOVIE_DURATION_S = 24.97   # IMG_1423_cfr30.mov, as printed by tools/intra_frame.py
+# (Renamed from _prores.mov: TouchDesigner kept the replaced file's old
+# 120 fps metadata cached under the same path.)
 
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
