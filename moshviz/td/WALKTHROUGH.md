@@ -151,6 +151,8 @@ It stands in for you until the Kinect works.
    | `uMaskFeather` | 0.1 |
    | `uThresholdSoftness` | 0.05 |
    | `uReseedFrames` | 0 |
+   | `uRadial` | 1 |
+   | `uRadialCurve` | 3 |
    | `uFrame` | `absTime.frame` (the field should show the frame number counting up) |
 
 6. Tab → TOP → **Null**. Connect `mosh` → Null and rename it **`out`**.

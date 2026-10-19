@@ -23,6 +23,8 @@ uniform float uMaskFeather;   // half-width of the mask edge ramp, in mask units
 uniform float uThresholdSoftness; // 0 = hard on/off blocks; larger = blocks fade in and out (e.g. 0.05)
 uniform float uReseedFrames;  // frames between reshuffles of which blocks mosh; 0 = never reshuffle
 uniform float uFrame;         // set to absTime.frame
+uniform float uRadial;        // 1 = concentric rings (low bands at the centre), 0 = horizontal strips
+uniform float uRadialCurve;   // ring spacing: 2 = equal-area rings; > 2 = bigger centre (low) rings
 
 const int CURRENT = 0;
 const int FEEDBACK = 1;
@@ -32,15 +34,33 @@ const int MOTION = 4;
 
 out vec4 fragColor;
 
-// Mosh amount for the strip containing this pixel. Strip 0 is at the bottom
-// of the frame (TouchDesigner's v = 0), so low guitar bands mosh low rows.
-// The strip count is the row texture's height, so it cannot drift out of
-// sync with the feature service's band count.
-float stripAmount(float v)
+// Position of a point in band space, 0 (lowest band) to 1 (highest).
+//
+// Strips: the vertical position, so strip 0 is at the bottom of the frame
+// (TouchDesigner's v = 0).
+// Rings: the distance from the frame centre, corrected for aspect ratio and
+// normalised so the corners are at 1. Raising it to the power uRadialCurve
+// (k) sets the ring spacing. Ring i covers radii (i/N)^(1/k) to ((i+1)/N)^(1/k), so
+// its area is proportional to ((i+1)/N)^(2/k) - (i/N)^(2/k). For k = 2,
+// every ring has the same area; for k > 2, inner (low) rings are larger.
+float bandPosition(vec2 uv)
 {
-    float stripCount = uTD2DInfos[ROWS].res.w;
-    float strip = min(floor(v * stripCount), stripCount - 1.0);
-    return texelFetch(sTD2DInputs[ROWS], ivec2(0, int(strip)), 0).r;
+    if (uRadial < 0.5) {
+        return uv.y;
+    }
+    vec2 aspect = vec2(uTD2DInfos[CURRENT].res.z / uTD2DInfos[CURRENT].res.w, 1.0);
+    float r = length((uv - 0.5) * aspect) / length(0.5 * aspect);
+    return pow(clamp(r, 0.0, 1.0), max(uRadialCurve, 1e-3));
+}
+
+// Mosh amount for the band at `position` (0..1). The band count is the row
+// texture's height, so it cannot drift out of sync with the feature
+// service's band count.
+float bandAmount(float position)
+{
+    float bandCount = uTD2DInfos[ROWS].res.w;
+    float band = min(floor(position * bandCount), bandCount - 1.0);
+    return texelFetch(sTD2DInputs[ROWS], ivec2(0, int(band)), 0).r;
 }
 
 // texelFetch rather than texture(): every pixel in a block gets exactly that
@@ -100,7 +120,11 @@ void main()
     }
     vec4 moshed = mix(stale, live, uRefresh);
 
-    vec4 background = mix(live, moshed, moshWeight(stripAmount(uv.y), block));
+    // Read the amount at the block centre so a block is never split
+    // between two bands.
+    vec2 blockCentreUV = (vec2(block) + 0.5) / uTD2DInfos[MOTION].res.zw;
+    float amount = bandAmount(bandPosition(blockCentreUV));
+    vec4 background = mix(live, moshed, moshWeight(amount, block));
 
     float subject = smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather,
                                texture(sTD2DInputs[MASK], uv).r);

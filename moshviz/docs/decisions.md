@@ -186,6 +186,36 @@ replace `uBlockDropout`.
 
 ---
 
+## D10. Band layout: concentric rings, bass at the centre (provisional)
+
+**Alternatives.** (a) Horizontal strips, with the lowest band at the
+bottom (the original handover idea). (b) Concentric rings around the frame
+centre, with the lowest band in the middle.
+
+**Decision.** (b) by default, with a live toggle (`uRadial`) back to (a).
+Sohum's call after the first live test: bass reads as the "core" of the
+music and the highs as detail at the periphery, and rings make that
+visible.
+
+**Ring spacing.** Band position = r^k, where r is the aspect-corrected
+distance from the centre (1 at the corners). Ring i then covers radii
+(i/N)^(1/k) to ((i+1)/N)^(1/k). k = 2 gives equal-area rings; k > 2
+enlarges the inner rings. Simulated share of a 1280 × 720 frame per band
+(24 bands):
+
+| k | lowest | 2nd | 3rd | highest 4 |
+|---|---|---|---|---|
+| 2 | 8 % | 8 % | 8 % | 0 to 2 % |
+| 3 | 22 % | 13 % | 11 % | 0 to 1 % |
+| 4 | 38 % | 14 % | 8 % | 0 % |
+
+Default k = 3. The top bands only reach the corners, which suits guitar
+and most music, since there is little energy above 3 kHz. The amount is
+read at each macroblock's centre, so a block is never split between two
+bands.
+
+---
+
 ## D8. Repo location (provisional)
 
 `moshviz/` lives as a top-level folder in AudioDevProjects. That follows

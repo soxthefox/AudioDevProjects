@@ -46,6 +46,8 @@ mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 | `uMaskFeather` | 0.1 | Softness of the subject edge |
 | `uThresholdSoftness` | 0.05 | 0 = blocks switch hard on/off; larger = they fade |
 | `uReseedFrames` | 0 | Frames between reshuffles of which blocks mosh (0 = never) |
+| `uRadial` | 1 | 1 = concentric rings (bass at the centre, highs at the edges); 0 = horizontal strips |
+| `uRadialCurve` | 3 | Ring spacing: 2 = equal-area rings; higher = bigger bass disc |
 | `uFrame` | `absTime.frame` (expression) | Reseeds the dropout every frame |
 
 To tune the audio mapping live, send OSC from TouchDesigner (OSC Out CHOP
