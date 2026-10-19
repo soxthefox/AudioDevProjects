@@ -82,6 +82,7 @@ UNIFORMS = {
         'uGlowAudio': (1.5,),
         'uMotionScalePx': (3.0,),
         'uMotionFloorPx': (0.3,),
+        'uGlowSmooth': (0.0,),
     },
 }
 
@@ -100,7 +101,7 @@ SOURCE_OVERRIDES = {
             # People on stage move less than the lights; keep still
             # outlines bright so they stay readable.
             'uStaticLevel': (0.7,),
-            'uLineLevel': (0.35,),
+            'uLineLevel': (0.1,),
             'uImageLevel': (0.0,),    # no photographic overlay
             # Stage lighting comes back as light only: the bright parts in
             # their own colour, with a glow, and lines tinted by the scene.
@@ -120,6 +121,7 @@ SOURCE_OVERRIDES = {
             'uGlowAudio': (2.0,),
             'uMotionScalePx': (1.5,),
             'uMotionFloorPx': (0.15,),
+            'uGlowSmooth': (1.0,),   # blend between blocks instead of flat tiles
         },
     },
 }

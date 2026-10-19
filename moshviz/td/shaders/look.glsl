@@ -20,6 +20,7 @@ uniform float uMotionGlow;      // glow strength with no audio; 0 = off
 uniform float uGlowAudio;       // extra glow per unit of audio amount
 uniform float uMotionScalePx;   // speed (px/frame) shown at full brightness, e.g. 3
 uniform float uMotionFloorPx;   // speeds below this show no glow (hides camera noise), e.g. 0.3
+uniform float uGlowSmooth;      // 0 = one flat colour per macroblock, 1 = bilinear blend between blocks
 
 const int IMAGE = 0;
 const int MOTION = 1;
@@ -46,10 +47,32 @@ vec3 hueColour(float hue)
     return 0.5 + 0.5 * cos(TAU * (hue + vec3(0.0, -1.0 / 3.0, 1.0 / 3.0)));
 }
 
+// Motion vector of the block containing uv (flat tiles).
+vec2 blockVector(vec2 uv)
+{
+    return texelFetch(sTD2DInputs[MOTION], ivec2(uv * uTD2DInfos[MOTION].res.zw), 0).xy;
+}
+
+// Motion vector blended bilinearly from the four nearest block centres.
+// Done by hand with texelFetch, so it does not rely on the GPU filtering
+// 32-bit float textures.
+vec2 smoothVector(vec2 uv)
+{
+    vec2 size = uTD2DInfos[MOTION].res.zw;
+    vec2 p = uv * size - 0.5;            // position in block-centre coordinates
+    ivec2 i0 = ivec2(floor(p));
+    vec2 f = p - floor(p);
+    ivec2 maxIndex = ivec2(size) - 1;
+    vec2 v00 = texelFetch(sTD2DInputs[MOTION], clamp(i0,               ivec2(0), maxIndex), 0).xy;
+    vec2 v10 = texelFetch(sTD2DInputs[MOTION], clamp(i0 + ivec2(1, 0), ivec2(0), maxIndex), 0).xy;
+    vec2 v01 = texelFetch(sTD2DInputs[MOTION], clamp(i0 + ivec2(0, 1), ivec2(0), maxIndex), 0).xy;
+    vec2 v11 = texelFetch(sTD2DInputs[MOTION], clamp(i0 + ivec2(1, 1), ivec2(0), maxIndex), 0).xy;
+    return mix(mix(v00, v10, f.x), mix(v01, v11, f.x), f.y);
+}
+
 vec3 motionGlow(vec2 uv, float audioAmount)
 {
-    ivec2 block = ivec2(uv * uTD2DInfos[MOTION].res.zw);
-    vec2 v = texelFetch(sTD2DInputs[MOTION], block, 0).xy;
+    vec2 v = mix(blockVector(uv), smoothVector(uv), clamp(uGlowSmooth, 0.0, 1.0));
     float speed = length(v);
     float visible = smoothstep(uMotionFloorPx, max(uMotionScalePx, uMotionFloorPx + 1e-3), speed);
     float hue = atan(v.y, v.x) / TAU + 0.5;   // direction -> 0..1

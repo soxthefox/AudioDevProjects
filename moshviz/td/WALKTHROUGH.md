@@ -373,8 +373,8 @@ has everything in one place:
 `clip_timing`, `clip_xform` and `clones_switch` read these through
 expressions, so you never need to edit those nodes directly.
 
-**Finer blocks:** set `BLOCK_PX` in `scripts/wiring.py` to 6 or 4 (default
-8) and re-run the wiring line.
+**Block size:** `MOVIE_BLOCK_PX` (4) and `CAMERA_BLOCK_PX` (8) in
+`scripts/wiring.py`; re-run the wiring line after changing them.
 
 **Back to the camera:**
 ```python

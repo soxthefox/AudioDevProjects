@@ -57,7 +57,8 @@ MOVIE_FPS = 23.879   # IMG_1422_2.MOV average frame rate, read with PyAV
 # Source resolution, so the motion pass keeps BLOCK_PX macroblocks whatever
 # the input. A fixed 160 x 90 motion field gave 12 px blocks on 1920 x 1080
 # footage, which made the mosh and glow visibly chunkier.
-BLOCK_PX = 8
+CAMERA_BLOCK_PX = 8
+MOVIE_BLOCK_PX = 4   # finer for footage shown large; 8 px tiles read as pixelation
 CAMERA_SIZE = (1280, 720)
 MOVIE_SIZE = (1280, 720)   # IMG_1422_2.MOV is 1920 x 1080, but the Non-Commercial licence caps TOPs at 1280
 
@@ -68,6 +69,7 @@ USE_MOVIE = SOURCE == 'movie'
 VIDEO = 'clip_xform' if USE_MOVIE else 'mp_video'
 SUBJECT_MASK = 'no_mask' if USE_MOVIE else 'mask'
 SOURCE_SIZE = MOVIE_SIZE if USE_MOVIE else CAMERA_SIZE
+BLOCK_PX = MOVIE_BLOCK_PX if USE_MOVIE else CAMERA_BLOCK_PX
 
 # Operators the script creates if they do not exist: name -> operator type.
 CREATE = {
