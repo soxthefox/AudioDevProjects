@@ -60,8 +60,8 @@ vec3 motionGlow(vec2 uv, float audioAmount)
 void main()
 {
     vec2 uv = vUV.st;
-    vec4 image = texture(sTD2DInputs[IMAGE], uv);
+    vec4 moshed = texture(sTD2DInputs[IMAGE], uv);
     // Additive glow: light added on top of the graded image, as a screen would.
-    vec3 colour = grade(image.rgb) + motionGlow(uv, image.a);
+    vec3 colour = grade(moshed.rgb) + motionGlow(uv, moshed.a);
     fragColor = TDOutputSwizzle(vec4(colour, 1.0));
 }
