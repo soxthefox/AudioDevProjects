@@ -32,7 +32,7 @@ mosh ─► out (Null) ─► moviefileout1 (for the demo, later)
 | `prev_cam` (Feedback TOP) | Input: `cam`. Target TOP: `cam` |
 | `mosh_fb` (Feedback TOP) | Input: `cam`. Target TOP: `mosh` |
 | `oscin1` (OSC In CHOP) | Network Port 9000 |
-| `rows_sel` (Select CHOP) | Channel Names: `*row*`, so only the 24 strip channels pass through |
+| `rows_sel` (Select CHOP) | CHOPs: empty (fed by the wire). Channel Names: `moshviz/row/*`, so only the 24 strip channels pass through |
 | `rows` (CHOP to TOP) | Data Format: R. Pixel Format: 32-bit float. This gives a 1 × 24 texture, one row per channel |
 | `mosh` (GLSL TOP) | Pixel Shader: `mosh_pixel`. Output Resolution: same as `cam`. Pixel Format: 16-bit float (RGBA) or higher, because repeated feedback in 8-bit loses colour detail |
 
@@ -71,9 +71,8 @@ me what you actually see.
    moshes, and the circle region always stays live.
 3. **OSC rows.** Start the service (see the main README). Use `--file` on
    any guitar recording if no interface is connected. `oscin1` should
-   show channels such as `moshviz/row/00`. **(confirm the exact channel
-   names. If they differ, fix the Select pattern.)** `rows` shows a thin
-   column that flickers with the audio.
+   show channels `moshviz/row/00` … `moshviz/row/23` (confirmed). `rows`
+   shows a thin column that flickers with the audio.
 4. **Orientation.** Play a low note: the bottom strips should react. If the
    top strips react instead, CHOP to TOP is ordering the channels the other
    way. **(confirm)** Tell me and I'll flip `stripAmount()`.

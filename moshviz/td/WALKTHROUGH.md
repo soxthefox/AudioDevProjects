@@ -96,11 +96,14 @@ down gives **green**.
    .venv/bin/python features/service.py --file recordings/test_riff.wav --loop
    ```
 2. Tab → CHOP → **OSC In**. Set **Network Port** to `9000`.
-   ✅ Many channels bounce in time with the riff. Note their names
-   (expected: something like `moshviz/row/00`).
+   ✅ Many channels bounce in time with the riff (shown as bars). They are
+   named `moshviz/row/00` … `moshviz/row/23`, then `moshviz/onset`,
+   `moshviz/polyphony`, `moshviz/pitch`, `moshviz/level`, `moshviz/seq`.
 3. Tab → CHOP → **Select**. Connect OSC In → Select, and rename it
-   **`rows_sel`**. Set **Channel Names** to `*row*`.
-   ✅ Exactly 24 channels remain (0 means the names differ: tell Claude).
+   **`rows_sel`**. Leave its **CHOPs** field **empty** (the wire supplies
+   the input; pointing it at itself gives a ⚠). Set **Channel Names** to
+   `moshviz/row/*`.
+   ✅ Exactly 24 channels remain (click **i** to count).
 4. Tab → TOP → **CHOP to TOP**. Rename it **`rows`**. Set **CHOP** to
    `rows_sel`, and **Data Format** to *R*. On the Common page, set **Pixel
    Format** to 32-bit float.
