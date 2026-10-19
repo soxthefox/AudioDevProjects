@@ -23,6 +23,7 @@ UNIFORMS = {
         'uMaxMotionPx': (16.0,),
         'uRefresh': (0.05,),
         'uMaskFeather': (0.1,),
+        'uMaskInvert': (1.0,),
         'uThresholdSoftness': (0.05,),
         'uReseedFrames': (0.0,),
         'uFrame': 'absTime.frame',

@@ -22,6 +22,7 @@ uniform float uDisplacement;  // gain on motion vectors (1 = codec-like; > 1 exa
 uniform float uMaxMotionPx;   // clamp on per-frame displacement, in pixels
 uniform float uRefresh;       // 0..1 pull of moshed pixels toward the live frame each frame
 uniform float uMaskFeather;   // half-width of the mask edge ramp, in mask units (e.g. 0.1)
+uniform float uMaskInvert;    // 1 if the mask source is white = background (MediaPipe background-only mode)
 uniform float uThresholdSoftness; // 0 = hard on/off blocks; larger = blocks fade in and out (e.g. 0.05)
 uniform float uReseedFrames;  // frames between reshuffles of which blocks mosh; 0 = never reshuffle
 uniform float uFrame;         // set to absTime.frame
@@ -128,8 +129,9 @@ void main()
     float amount = bandAmount(bandPosition(blockCentreUV));
     vec4 background = mix(live, moshed, moshWeight(amount, block));
 
-    float subject = smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather,
-                               texture(sTD2DInputs[MASK], uv).r);
+    float maskValue = texture(sTD2DInputs[MASK], uv).r;
+    maskValue = mix(maskValue, 1.0 - maskValue, uMaskInvert);
+    float subject = smoothstep(0.5 - uMaskFeather, 0.5 + uMaskFeather, maskValue);
     // RGB is the image. Alpha carries this block's audio amount (0 on the
     // subject) for look.glsl, which uses it to drive the motion glow;
     // look.glsl sets alpha back to 1 for display and recording.
