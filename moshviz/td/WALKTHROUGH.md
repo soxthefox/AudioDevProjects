@@ -234,9 +234,13 @@ The plugin lives in `td/vendor/mediapipe-touchdesigner/` (gitignored; see
    [o.path for o in op('/project1').findChildren(name='seg_data')]
    ```
    ✔ It is `/project1/MediaPipe/seg_data`.
-4. **Turn off unused trackers.** On the MediaPipe node, find the **Face**,
-   **Hand** and **Pose** settings and switch them **off**. Leave
-   segmentation **on**. They cost CPU and GPU time and are not used.
+4. **Segmentation only.** Out of the box, every tracker except
+   segmentation is on. Fix that from the Textport:
+   ```python
+   exec(open(project.folder + '/scripts/mediapipe_settings.py').read())
+   ```
+   This turns segmentation on (background-only mask), and turns face,
+   hands, pose, objects, classification and embeddings off.
 5. **Bring the mask out.** Tab → TOP → **Select**, renamed **`mask`**.
    Set its **TOP** parameter to `/project1/MediaPipe/seg_data`.
    ✅ A white silhouette of you on black (soft, grey edges are fine).
