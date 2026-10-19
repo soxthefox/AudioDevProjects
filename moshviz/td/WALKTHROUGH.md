@@ -290,6 +290,18 @@ still things vanish; `uPointMix` 1 gives dotted, scanner-like lines;
 `uEdgeThreshold` higher removes noise sparkle; `uEdgeScalePx` higher
 gives thicker lines; `uImageLevel` 0.1 brings back a faint photo.
 
+## If the network misbehaves
+
+`scripts/wiring.py` holds every connection in the network. It reports any
+wire or reference that differs from the file, and fixes it:
+
+```python
+exec(open(project.folder + '/scripts/wiring.py').read())
+```
+
+Example: a wire accidentally dropped onto `cam` from `motion` creates a
+cook loop (⚠ "Cook dependency loop detected"), and everything turns black.
+
 ## Send back to Claude
 
 1. Which ✅ checks passed, plus screenshots of the network and of `out`
