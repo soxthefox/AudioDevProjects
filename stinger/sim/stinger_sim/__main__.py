@@ -56,9 +56,8 @@ async def run(args: argparse.Namespace, installation: Installation) -> None:
     shown_host = "localhost" if args.host in ("127.0.0.1", "localhost") else lan_address()
     print(f"Stinger simulator: {args.bars} bars x {installation.leds_per_bar} LEDs")
     print(f"  open      http://{shown_host}:{args.http_port}")
-    print(
-        f"  gateway   sim:{shown_host}:{args.gateway_port}   (bridge: --out sim:localhost:{args.gateway_port})"
-    )
+    gateway = f"sim:{shown_host}:{args.gateway_port}"
+    print(f"  gateway   {gateway}   (bridge: --out {gateway})")
     print("  Ctrl-C to stop", flush=True)
 
     async def push_state() -> None:

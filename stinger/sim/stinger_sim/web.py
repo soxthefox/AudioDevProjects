@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import contextlib
 import hashlib
 import json
 import struct
@@ -69,10 +70,9 @@ class WebServer:
             if opcode == _OP_PING:
                 writer.write(_encode_frame(_OP_PONG, payload))
             elif opcode == _OP_TEXT:
-                try:
+                # Malformed commands from the page are ignored.
+                with contextlib.suppress(ValueError, KeyError, TypeError):
                     self._on_command(json.loads(payload))
-                except (ValueError, KeyError, TypeError):
-                    pass  # ignore malformed commands from the page
 
 
 def _parse_request(request: bytes) -> tuple[str, dict[str, str]]:
