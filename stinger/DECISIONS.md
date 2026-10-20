@@ -9,3 +9,47 @@ The repository (`AudioDevProjects`) is a monorepo whose convention is one self-c
 ## D2. Python 3.14 from Homebrew in a project virtualenv
 
 The plan asks for Python 3.11+. The machine's default `python3` is 3.9, so `make` creates `stinger/.venv` from the newest `python3.1x` it finds (3.14 here) and installs dev tools there, including a current PlatformIO. Nothing is installed system-wide.
+
+## D3. One packet format on every link; framing differs per link
+
+The serial link wraps packets in COBS + CRC-16. The radio link carries the same packet bytes with no extra CRC, because ESP-NOW already checks each frame. The gateway can therefore forward FRAME, SHOW and CONFIG byte for byte, and a future wired bar link only needs the serial framing. Every packet is at most 250 bytes so it fits one ESP-NOW frame.
+
+## D4. CRC is CRC-16/CCITT-FALSE, appended little-endian
+
+"CRC-16/CCITT" names several variants. We use poly 0x1021, init 0xFFFF, no reflection (check value 0x29B1), which matches Python's `binascii.crc_hqx(data, 0xFFFF)` and gives the tests an independent reference. It is appended little-endian, like every other integer.
+
+## D5. A FRAME carries up to 81 LEDs, not 76
+
+With a 5-byte header (type, seq, bar_id, led_count), `⌊(250 − 5) / 3⌋ = 81` LEDs fit one ESP-NOW packet. The plan's 76 assumed a bigger header. Bars longer than 81 LEDs will need the `offset` field the plan mentions; that is a protocol version 2 change.
+
+## D6. New message CONFIG_MAC (0x05) for addressing by MAC
+
+The plan says IDs are assigned "with CONFIG `assign ID` sent to a MAC", but CONFIG's payload addresses by `bar_id`. Unassigned bars all have ID 0, so a MAC address must travel in the packet. CONFIG_MAC is `mac[6], key, value`. The MAC is in the packet, not just in the ESP-NOW header, so the same bar logic works on a wired link that has no MACs.
+
+## D7. Bars send HELLO with `rssi = 0`; the gateway fills it in
+
+Only the gateway knows the received signal strength. The gateway patches `rssi` and re-encodes HELLO with its own `seq`. It also keeps a `bar_id → MAC` table from HELLOs, which it needs to unicast CONFIG by ID.
+
+## D8. Strict decoding, with a fixed error order
+
+Wrong payload lengths, unknown types, unknown config keys and out-of-range IDs are rejected rather than tolerated. Both codecs report the first error from the list in PROTOCOL.md section 3, so the golden vectors can name an exact error for every invalid input.
+
+## D9. STATS `crc_errors` counts framing errors too; third counter is `tx_failures`
+
+A bad COBS frame and a bad CRC are both "corrupt serial input", and the laptop only needs to see that the link is noisy. `tx_failures` counts all radio send failures (broadcast queue full, unicast not acknowledged after retries), not only ESP-NOW-specific ones, so the name still fits a wired link.
+
+## D10. Brightness cap is an 8-bit scale; the laptop can only lower it
+
+BRIGHTNESS_CAP takes 0–255 (a scale applied to every channel). Each bar applies `min(runtime_cap, hard_limit)`, where the hard limit is a build flag (default 178 ≈ 70 %). The runtime cap starts at the hard limit.
+
+## D11. Failsafe is measured from the last FRAME addressed to this bar
+
+"No frame for 2 s" is read as no FRAME for this bar's ID; SHOWs alone do not keep a bar lit. A bar that has never received a frame shows black (unless unassigned, which breathes).
+
+## D12. Golden vectors come from an independent one-off script; JSON is the source of truth
+
+`vectors.json` was produced once by a script written separately from both codecs and checked against the published COBS examples and `binascii.crc_hqx`. It is now edited by hand. The C tests read the same data through `golden_vectors.h`, which `gen_c_vectors.py` generates by data conversion only; a Python test fails if the header is stale.
+
+## D13. The C codec's tests live in the gateway project's native environment
+
+The handover puts native tests under each PlatformIO project. The gateway is the main parser of serial input, so `firmware/gateway/test/test_protocol` holds the golden-vector, round-trip and bit-flip tests for the C codec. The protocol folder is a PlatformIO library (`protocol/library.json`) that both firmware projects link via `symlink://`.

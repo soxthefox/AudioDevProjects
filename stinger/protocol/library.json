@@ -1,0 +1,12 @@
+{
+  "name": "stinger_proto",
+  "version": "1.0.0",
+  "description": "Stinger protocol C codec (see PROTOCOL.md)",
+  "frameworks": "*",
+  "platforms": "*",
+  "build": {
+    "srcDir": ".",
+    "includeDir": ".",
+    "srcFilter": ["-<*>", "+<stinger_proto.c>"]
+  }
+}
