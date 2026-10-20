@@ -1,0 +1,16 @@
+# Hardware and timing facts for the installation (HANDOVER.md section 3).
+# The laptop side (bridge, simulator, tools) reads this file. The firmware gets the same
+# values as build flags in firmware/*/platformio.ini; tests/test_config.py checks they agree.
+
+bars: 10                      # bars in the installation (protocol allows IDs 1-16)
+leds_per_bar: 60              # WS2812B pixels per bar
+target_fps: 40                # frames per second the bridge sends at most
+serial_baud: 921600           # laptop <-> gateway USB serial
+brightness_hard_limit: 178    # 0-255 scale; 178 is about 70 % of full scale
+failsafe_timeout_ms: 2000     # no FRAME for this long -> bar fades out
+failsafe_fade_ms: 500         # length of that fade
+hello_interval_ms: 1000       # bars announce themselves this often
+offline_after_ms: 3000        # laptop marks a bar offline after this long without HELLO
+stats_interval_ms: 1000       # gateway STATS period
+config_retries: 3             # unicast CONFIG retries after the first attempt
+input_hold_ms: 1000           # bridge keeps re-sending the last frame this long after input stops

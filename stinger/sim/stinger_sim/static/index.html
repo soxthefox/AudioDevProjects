@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stinger Simulator</title>
+<style>
+  :root {
+    --bg: #0b0c0f;
+    --panel: #15171c;
+    --line: #262a33;
+    --text: #e7e9ee;
+    --muted: #8b92a1;
+    --ok: #3ecf8e;
+    --warn: #f2b84b;
+    --bad: #ef5f5f;
+    --accent: #7aa2ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 20px; margin-bottom: 16px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
+  .status { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .status b { color: var(--text); font-weight: 500; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--bad); }
+  .dot.on { background: var(--ok); }
+  .controls {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 24px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;
+  }
+  .controls label { display: flex; justify-content: space-between; color: var(--muted); margin-bottom: 4px; }
+  .controls output { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .booth { background: #050608; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .bar { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 12px; padding: 6px 0; }
+  .bar + .bar { border-top: 1px solid #12141a; }
+  .label { font-variant-numeric: tabular-nums; }
+  .label .name { font-weight: 600; }
+  .label .meta { color: var(--muted); font-size: 12px; }
+  .bar.unplugged .name { color: var(--muted); text-decoration: line-through; }
+  .bar.unplugged canvas { opacity: 0.25; }
+  canvas { width: 100%; height: 26px; display: block; border-radius: 4px; background: #000; }
+  button {
+    font: inherit; font-size: 12px; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; min-width: 78px;
+  }
+  button:hover { border-color: var(--accent); }
+  .bar.unplugged button { color: var(--warn); border-color: var(--warn); }
+  .hint { color: var(--muted); margin-top: 14px; font-size: 12px; }
+  .warn { color: var(--warn); }
+  @media (max-width: 640px) {
+    .bar { grid-template-columns: 1fr auto; }
+    .bar canvas { grid-column: 1 / -1; grid-row: 2; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Stinger simulator</h1>
+    <div class="status">
+      <span><span id="link-dot" class="dot"></span><span id="link">waiting for bridge</span></span>
+      <span>latency <b id="latency">–</b></span>
+      <span>gateway rx <b id="rx">0</b></span>
+      <span>CRC errors <b id="crc">0</b></span>
+      <span>radio failures <b id="txf">0</b></span>
+    </div>
+  </header>
+
+  <section class="controls">
+    <div>
+      <label for="loss">Packet loss <output id="loss-out">0 %</output></label>
+      <input id="loss" type="range" min="0" max="30" step="1" value="0">
+    </div>
+    <div>
+      <label for="cap">Brightness cap <output id="cap-out">–</output></label>
+      <input id="cap" type="range" min="0" max="255" step="1" value="255">
+    </div>
+  </section>
+
+  <section class="booth" id="booth"></section>
+  <p class="hint">Each row is one bar. Latency is serial-in to SHOW at the simulated baud rate. Dropped counts frames a bar missed. Unplug cuts a bar's power: it stops answering and the bridge marks it offline after 3 s.</p>
+</main>
+<script>
+"use strict";
+const booth = document.getElementById("booth");
+const rows = new Map();
+let ws = null;
+let draggingCap = false;
+
+function send(cmd) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(cmd));
+}
+
+function makeRow(bar) {
+  const row = document.createElement("div");
+  row.className = "bar";
+  row.innerHTML = `
+    <div class="label"><div class="name"></div><div class="meta"></div></div>
+    <canvas></canvas>
+    <button type="button"></button>`;
+  const button = row.querySelector("button");
+  button.addEventListener("click", () => send({ cmd: "plug", bar: bar.id, plugged: row.classList.contains("unplugged") }));
+  booth.appendChild(row);
+  const entry = { row, name: row.querySelector(".name"), meta: row.querySelector(".meta"), canvas: row.querySelector("canvas"), button };
+  rows.set(bar.mac, entry);
+  return entry;
+}
+
+function drawPixels(canvas, b64) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const count = bytes.length / 3;
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, w, h);
+  const cell = w / count;
+  // Soft glow first (a wide, faint copy), then the LED itself.
+  for (const [alpha, widen, inset] of [[0.35, 2.4, 0], [1, 1, 0.18]]) {
+    ctx.globalAlpha = alpha;
+    for (let i = 0; i < count; i++) {
+      const r = bytes[3 * i], g = bytes[3 * i + 1], b = bytes[3 * i + 2];
+      if (!(r | g | b)) continue;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      const cw = cell * widen;
+      const x = i * cell + cell / 2 - cw / 2;
+      ctx.fillRect(x + cell * inset, h * inset, cw - 2 * cell * inset, h - 2 * h * inset);
+    }
+  }
+}
+
+function render(state) {
+  document.getElementById("link-dot").classList.toggle("on", state.connected);
+  document.getElementById("link").textContent = state.connected ? "bridge connected" : "waiting for bridge";
+  document.getElementById("latency").textContent = state.latency_ms == null ? "–" : `${state.latency_ms} ms`;
+  document.getElementById("rx").textContent = state.gateway.rx_packets;
+  document.getElementById("crc").textContent = state.gateway.crc_errors;
+  document.getElementById("txf").textContent = state.gateway.tx_failures;
+  document.getElementById("loss-out").textContent = `${Math.round(state.loss * 100)} %`;
+  const loss = document.getElementById("loss");
+  if (document.activeElement !== loss) loss.value = Math.round(state.loss * 100);
+  const effective = Math.min(state.cap, state.hard_limit);
+  document.getElementById("cap-out").innerHTML =
+    `${Math.round(effective / 2.55)} %` + (state.cap > state.hard_limit ? ` <span class="warn">(hard limit ${Math.round(state.hard_limit / 2.55)} %)</span>` : "");
+  if (!draggingCap) document.getElementById("cap").value = state.cap;
+
+  for (const bar of state.bars) {
+    const r = rows.get(bar.mac) || makeRow(bar);
+    r.row.classList.toggle("unplugged", !bar.plugged);
+    r.name.textContent = bar.id ? `Bar ${bar.id}` : "Unassigned";
+    r.meta.textContent = bar.plugged ? `${bar.fps} fps · ${bar.dropped} dropped` : "unplugged";
+    r.button.textContent = bar.plugged ? "Unplug" : "Replug";
+    drawPixels(r.canvas, bar.pixels);
+  }
+}
+
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = ev => render(JSON.parse(ev.data));
+  ws.onclose = () => {
+    document.getElementById("link-dot").classList.remove("on");
+    document.getElementById("link").textContent = "simulator stopped";
+    setTimeout(connect, 1000);
+  };
+}
+
+document.getElementById("loss").addEventListener("input", e => send({ cmd: "loss", value: e.target.value / 100 }));
+const cap = document.getElementById("cap");
+cap.addEventListener("pointerdown", () => { draggingCap = true; });
+cap.addEventListener("pointerup", () => { draggingCap = false; });
+cap.addEventListener("input", e => send({ cmd: "cap", value: Number(e.target.value) }));
+connect();
+</script>
+</body>
+</html>
