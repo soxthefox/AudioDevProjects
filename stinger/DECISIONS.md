@@ -101,3 +101,23 @@ The bridge does not answer ArtPoll. QLC+ and LedFx both send to a configured IP 
 ## D25. Runtime dependencies: PyYAML and pyserial
 
 The protocol codec stays standard library only. The bridge and tools use PyYAML (the YAML configs the plan asks for) and pyserial (imported only when `--out serial:` is used).
+
+## D26. Firmware platform: `espressif32@6.9.0` (Arduino core 2.0.17, ESP-IDF 4.4), pinned
+
+This is the newest official PlatformIO ESP32 platform and the one FastLED is most tested on. ESP-IDF 4.4's ESP-NOW receive callback carries no RSSI, so the gateway reports `rssi = 0` (unknown, which PROTOCOL.md allows). The transport already reads RSSI under ESP-IDF 5 (`#if ESP_IDF_VERSION_MAJOR >= 5`); moving to Arduino core 3 (the community `pioarduino` platform) would turn it on. That is a Layer 2 choice, after FastLED is checked on core 3.
+
+## D27. ESP-NOW frames at 6 Mbps, as a build flag
+
+At the ESP-NOW default of 1 Mbps, one 185-byte FRAME takes about 1.7 ms of airtime, so 10 bars use about 17 ms of every 25 ms frame, leaving little room for retries or other traffic. `STINGER_ESPNOW_PHY_RATE=WIFI_PHY_RATE_6M` (robust OFDM) cuts that to about 3 ms. Range and loss at this rate must be checked on the real floor in Layer 2; the flag makes it a one-line change.
+
+## D28. Unicast sends block until acknowledged (up to 50 ms)
+
+ESP-NOW reports delivery asynchronously. The transport waits on a semaphore for the send callback, so the gateway's retry loop stays simple and testable. A CONFIG to an absent bar can hold the loop for 4 × 50 ms; the 4 KB serial receive buffer covers about 44 ms at 921600 baud, so frames may be dropped while an operator sends CONFIG to a missing bar. CONFIG is a rare manual action and dropped frames are already tolerated, so this is accepted.
+
+## D29. Firmware facts are build flags with no defaults
+
+`src/firmware_config.h` stops the build with `#error` if a flag is missing, so there is no second copy of any number to drift. Logic classes take plain config structs and never read macros, which keeps them testable natively. `tests/test_config.py` compares the flags with `config/installation.yaml`. Native test builds use `-Werror`; the ESP32 build uses `-Wall -Wextra` without `-Werror` because the Arduino core's own headers are not warning-clean across versions. It currently builds with no warnings from this project's code.
+
+## D30. The Transport interface also reports link counters
+
+The gateway's STATS needs serial `rx_packets` and `crc_errors`, which only the serial framing layer knows. `Transport::counters()` exposes them for every link type, so gateway logic depends only on the interface.

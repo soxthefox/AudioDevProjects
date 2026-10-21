@@ -56,6 +56,10 @@ native-test: venv
 	done
 
 firmware-build: venv
+	@for p in $(FIRMWARE_PROJECTS); do \
+		echo "== firmware build: $$p"; \
+		(cd $$p && ../../$(PIO) run -e esp32dev) || exit 1; \
+	done
 
 vectors: venv
 	$(BIN)/python protocol/vectors/gen_c_vectors.py
