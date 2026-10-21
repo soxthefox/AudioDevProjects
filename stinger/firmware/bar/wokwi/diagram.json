@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "author": "stinger",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-led-strip",
+      "id": "strip",
+      "top": -140,
+      "left": -200,
+      "attrs": { "pixels": "60" }
+    }
+  ],
+  "connections": [
+    ["esp:TX", "$serialMonitor:RX", "", []],
+    ["esp:RX", "$serialMonitor:TX", "", []],
+    ["strip:DIN", "esp:16", "green", []],
+    ["strip:VDD", "esp:5V", "red", []],
+    ["strip:VSS", "esp:GND.1", "black", []]
+  ]
+}

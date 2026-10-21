@@ -1,18 +1,17 @@
-// Bar firmware: ESP-NOW from the gateway -> WS2812B strip via FastLED.
+// Bar firmware: packets from the gateway (ESP-NOW, or a wired serial link) -> WS2812B strip.
 #include <Arduino.h>
 #include <FastLED.h>
 
+#include "bar_link.h"
 #include "bar_logic.h"
-#include "espnow_transport.h"
 #include "firmware_config.h"
 #include "nvs_id_store.h"
 
 namespace {
 
-stinger::EspNowTransport radio({STINGER_ESPNOW_CHANNEL, STINGER_ESPNOW_PHY_RATE,
-                                STINGER_ESPNOW_ACK_TIMEOUT_MS, STINGER_ESPNOW_RX_QUEUE});
+stinger::BarLink barLink;
 stinger::NvsIdStore idStore;
-stinger::BarLogic *bar = nullptr; // built in setup(), once the radio knows its MAC
+stinger::BarLogic *bar = nullptr; // built in setup(), once the link knows the bar's MAC
 
 CRGB leds[STINGER_LED_COUNT];
 uint8_t rgb[3 * STINGER_LED_COUNT];
@@ -30,11 +29,11 @@ void setup() {
     FastLED.setMaxPowerInVoltsAndMilliamps(STINGER_LED_VOLTS, STINGER_LED_MAX_MA);
     FastLED.setBrightness(255); // the cap is applied in BarLogic::render
     FastLED.clear(true);
-    if (!radio.begin()) {
+    if (!barLink.begin()) {
         delay(1000);
         ESP.restart();
     }
-    static stinger::BarLogic logic(radio, idStore, radio.ownMac(), kBarConfig);
+    static stinger::BarLogic logic(barLink.transport(), idStore, barLink.mac(), kBarConfig);
     bar = &logic;
     bar->begin();
 }
@@ -51,4 +50,9 @@ void loop() {
         leds[i] = CRGB(rgb[3 * i], rgb[3 * i + 1], rgb[3 * i + 2]);
     }
     FastLED.show();
+#ifdef STINGER_WOKWI_TRACE
+    // Text the Wokwi scenario can wait for. It shares TX with the binary link, so this flag is
+    // for simulation builds only.
+    Serial.printf("\npixel0=%u,%u,%u\n", rgb[0], rgb[1], rgb[2]);
+#endif
 }

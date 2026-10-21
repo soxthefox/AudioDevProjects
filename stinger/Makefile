@@ -11,11 +11,12 @@ FIRMWARE_PROJECTS := firmware/gateway firmware/bar
 C_SOURCES := $(shell find protocol firmware -name '*.[ch]' -o -name '*.cpp' -o -name '*.hpp' \
 	| grep -v -e '/\.pio/' -e 'golden_vectors.h' -e 'bar_scenarios.h')
 
-.PHONY: help venv sim test lint format py-test native-test firmware-build vectors clean
+.PHONY: help venv sim wokwi test lint format py-test native-test firmware-build vectors clean
 
 help:
 	@echo "make sim             start the simulator and print the URL to open"
 	@echo "make test            lint + Python tests + PlatformIO native tests + firmware builds"
+	@echo "make wokwi           single-bar Wokwi simulation (skipped without WOKWI_CLI_TOKEN)"
 	@echo "make lint            ruff + clang-format checks"
 	@echo "make format          apply ruff format and clang-format"
 	@echo "make vectors         regenerate the generated C test headers"
@@ -34,7 +35,7 @@ venv: $(VENV)/.installed
 sim: venv
 	$(BIN)/stinger-sim $(ARGS)
 
-test: lint py-test native-test firmware-build
+test: lint py-test native-test firmware-build wokwi
 
 lint: venv
 	$(BIN)/ruff check .
@@ -60,6 +61,9 @@ firmware-build: venv
 		echo "== firmware build: $$p"; \
 		(cd $$p && ../../$(PIO) run -e esp32dev) || exit 1; \
 	done
+
+wokwi: venv
+	$(BIN)/python firmware/bar/wokwi/run_wokwi.py
 
 vectors: venv
 	$(BIN)/python protocol/vectors/gen_c_vectors.py

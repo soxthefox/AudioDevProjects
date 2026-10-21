@@ -137,3 +137,7 @@ The plan asks for "slow white breathing at low brightness". A triangle wave (0 â
 ## D34. Swapping the bar to a wired link is a change to `main.cpp` only
 
 `BarLogic` takes a `Transport&`. A wired bar would construct `SerialTransport` over an `ArduinoStream` on a UART instead of `EspNowTransport`; CONFIG_MAC still works because MACs travel inside packets (D6).
+
+## D35. Wokwi bar runs on the wired serial link; its scenario is generated from the codec
+
+The plan says to drive the Wokwi bar "by a serial test input" and not to depend on ESP-NOW simulation. `env:wokwi` builds the normal bar firmware with `STINGER_LINK_SERIAL`, so it receives packets through `SerialTransport` on UART0 instead of ESP-NOW: the wired-link path from D34, exercised for real. `run_wokwi.py` writes the scenario at run time, encoding CONFIG_MAC (assign ID 1), FRAME (all red) and SHOW with the Python codec into a `write-serial` byte list. It then waits for pixel 0 to read `178,0,0` (the cap) and later `0,0,0` (the failsafe). The `wokwi` build alone prints those `pixel0=` trace lines, on the same TX line as the binary link, so it must never be flashed to the installation. Without `WOKWI_CLI_TOKEN`, `make wokwi` (part of `make test`) prints a skip message and passes. With the token set, a missing `wokwi-cli` is an error. A test checks the diagram's strip length and data pin against the build flags, and that the scenario bytes decode to the three intended packets. The run itself has not been executed here: no token is available in this environment.
