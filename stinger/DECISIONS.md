@@ -141,3 +141,11 @@ The plan asks for "slow white breathing at low brightness". A triangle wave (0 â
 ## D35. Wokwi bar runs on the wired serial link; its scenario is generated from the codec
 
 The plan says to drive the Wokwi bar "by a serial test input" and not to depend on ESP-NOW simulation. `env:wokwi` builds the normal bar firmware with `STINGER_LINK_SERIAL`, so it receives packets through `SerialTransport` on UART0 instead of ESP-NOW: the wired-link path from D34, exercised for real. `run_wokwi.py` writes the scenario at run time, encoding CONFIG_MAC (assign ID 1), FRAME (all red) and SHOW with the Python codec into a `write-serial` byte list. It then waits for pixel 0 to read `178,0,0` (the cap) and later `0,0,0` (the failsafe). The `wokwi` build alone prints those `pixel0=` trace lines, on the same TX line as the binary link, so it must never be flashed to the installation. Without `WOKWI_CLI_TOKEN`, `make wokwi` (part of `make test`) prints a skip message and passes. With the token set, a missing `wokwi-cli` is an error. A test checks the diagram's strip length and data pin against the build flags, and that the scenario bytes decode to the three intended packets. The run itself has not been executed here: no token is available in this environment.
+
+## D36. Added `stinger-config` (list bars, assign IDs, set cap and failsafe)
+
+Not in the handover's tool list, but Layer 2 cannot assign bar IDs without it (section 4.3 says the laptop assigns them). It speaks to the gateway link directly, so the bridge must be stopped while it runs. Folding it into the bridge as live commands is a natural next step once the custom control app is designed.
+
+## D37. Controller guides recommend one 180-channel universe per bar
+
+QLC+: one RGB Panel (60 Ã— 1) per bar on its own universe, transmission mode **Full** (Standard mode refreshes a static universe only every 2 s, as long as the bars' failsafe). LedFx: one 600-pixel device with a universe size of 180, which lands exactly on the default mapping. The guides note which menu names and field labels come from the apps' documentation and source and are still to be checked against the installed versions.

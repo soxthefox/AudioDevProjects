@@ -14,6 +14,7 @@ stinger-sim = "stinger_sim.__main__:main"
 stinger-bridge = "stinger_bridge.__main__:main"
 stinger-patterns = "stinger_tools.patterns:main"
 stinger-latency = "stinger_tools.latency:main"
+stinger-config = "stinger_tools.configure:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "platformio>=6.1"]
