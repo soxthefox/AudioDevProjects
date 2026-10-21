@@ -2,6 +2,7 @@
 
 import asyncio
 import queue
+import socket
 import threading
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
@@ -74,6 +75,9 @@ class TcpLink(GatewayLink):
 
     async def open(self) -> None:
         self._reader, self._writer = await asyncio.open_connection(self.host, self.port)
+        # A serial port sends bytes at once; do not let Nagle hold back small packets.
+        sock = self._writer.get_extra_info("socket")
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     async def drain(self) -> None:
         if self._writer:

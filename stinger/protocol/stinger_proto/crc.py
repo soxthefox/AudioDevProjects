@@ -1,14 +1,13 @@
-"""CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF, no reflection, no final XOR)."""
+"""CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF, no reflection, no final XOR).
 
-_POLY = 0x1021
+binascii.crc_hqx is exactly this CRC when started at 0xFFFF, implemented in C. A pure-Python
+bit loop cost about 2 ms per 10-bar frame, a fifth of the bridge's latency budget.
+"""
+
+import binascii
+
 _INIT = 0xFFFF
 
 
 def crc16(data: bytes) -> int:
-    crc = _INIT
-    for byte in data:
-        crc ^= byte << 8
-        for _ in range(8):
-            crc = ((crc << 1) ^ _POLY) if crc & 0x8000 else (crc << 1)
-            crc &= 0xFFFF
-    return crc
+    return binascii.crc_hqx(data, _INIT)

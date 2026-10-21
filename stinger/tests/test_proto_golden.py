@@ -1,6 +1,5 @@
 """The Python codec against the golden vectors (PROTOCOL.md section 9)."""
 
-import binascii
 import importlib.util
 
 import pytest
@@ -26,7 +25,6 @@ def test_crc_check_value() -> None:
     check = VECTORS["crc_check"]
     data = check["ascii"].encode()
     assert crc16(data) == check["crc"]
-    assert crc16(data) == binascii.crc_hqx(data, 0xFFFF)
 
 
 @pytest.mark.parametrize("case", VECTORS["cobs"])

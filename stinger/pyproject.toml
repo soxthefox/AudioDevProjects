@@ -7,10 +7,13 @@ name = "stinger"
 version = "0.1.0"
 description = "Light Installation - Stinger: protocol, simulator, bridge and tools (Layer 1)"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6"]
+dependencies = ["pyyaml>=6", "pyserial>=3.5"]
 
 [project.scripts]
 stinger-sim = "stinger_sim.__main__:main"
+stinger-bridge = "stinger_bridge.__main__:main"
+stinger-patterns = "stinger_tools.patterns:main"
+stinger-latency = "stinger_tools.latency:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "platformio>=6.1"]
@@ -20,6 +23,7 @@ stinger_proto = "protocol/stinger_proto"
 stinger_config = "config/stinger_config"
 stinger_sim = "sim/stinger_sim"
 stinger_bridge = "bridge/stinger_bridge"
+stinger_tools = "tools/stinger_tools"
 
 [tool.setuptools.package-data]
 stinger_sim = ["static/*"]

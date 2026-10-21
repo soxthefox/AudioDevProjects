@@ -73,3 +73,31 @@ The simulator's virtual bar is a Python port of the firmware's bar logic, with a
 ## D18. Simulator view metrics
 
 Per bar: fps is SHOWs latched with a new FRAME in the last second; dropped counts SHOWs missed (frame_seq gaps up to 100; larger jumps are a resync) plus SHOWs that arrived without this bar's FRAME. Latency is one figure for the whole frame: from the first serial byte of a frame reaching the gateway to the SHOW latch, averaged over the last 40 frames.
+
+## D19. Bridge listens on 127.0.0.1 by default
+
+The plan says Art-Net/sACN arrive over UDP on localhost. Binding the specific loopback address (with `SO_REUSEADDR`/`SO_REUSEPORT`) also lets the bridge share port 6454 with QLC+, which binds it on all interfaces for its own Art-Net input: unicast to 127.0.0.1 goes to the more specific bind. `--listen 0.0.0.0` accepts input from the network, and only then does the bridge join the sACN multicast groups. Over loopback, configure senders for unicast to 127.0.0.1.
+
+## D20. sACN universes default to 1–10
+
+sACN has no universe 0, so the default mapping is Art-Net universe `N − 1` and sACN universe `N` for bar N. Both bases and per-bar overrides are in `config/bridge.yaml`.
+
+## D21. When the bridge sends a frame
+
+A frame goes out as soon as every bar's universe has new data, or on ArtSync / sACN sync; with only some universes updated, 5 ms after the first one. A token bucket (40 fps average, bursts of 2) protects the serial link. A strict "25 ms since the last send" rule was tried first and measured badly: the wait carried each frame's delay into the next, giving a 6–7 ms median. When input stops, the last frame is repeated every 2 frame intervals for 1 s, then sending stops. Repeats start only after 2 intervals of silence so they never race live input. The bridge sends a FRAME for every configured bar whether or not it is online, because a bar may come back at any time and its FRAME costs the same airtime as a broadcast.
+
+## D22. Python CRC uses `binascii.crc_hqx`
+
+The pure-Python bit loop took 0.18 ms per bar, about 2 ms per frame, a fifth of the 10 ms budget. `binascii.crc_hqx(data, 0xFFFF)` is the same CRC in C and is still standard library. The golden check value still tests it.
+
+## D23. Latency is measured from the first input packet of a frame to its SHOW
+
+`stinger-latency artnet` runs the bridge in-process between a local Art-Net sender and a stand-in gateway, so it measures the bridge's added delay without hardware. Measured here: median 2.4 ms, p99 5.4 ms. `tests/test_bridge_e2e.py` fails if p99 reaches 10 ms. The bridge reports its own p50/p99 live.
+
+## D24. No ArtPollReply
+
+The bridge does not answer ArtPoll. QLC+ and LedFx both send to a configured IP without discovery. If a controller needs to discover the bridge, adding ArtPollReply is a small change.
+
+## D25. Runtime dependencies: PyYAML and pyserial
+
+The protocol codec stays standard library only. The bridge and tools use PyYAML (the YAML configs the plan asks for) and pyserial (imported only when `--out serial:` is used).
