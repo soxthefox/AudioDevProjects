@@ -39,3 +39,10 @@ def test_reboot_keeps_id_and_resets_the_rest() -> None:
     assert bar.bar_id == 3
     assert bar.cap == settings.hard_limit
     assert bar.pixels(0) == bytes(3 * settings.led_count)
+
+
+def test_firmware_scenario_header_is_up_to_date() -> None:
+    import gen_bar_scenarios
+
+    expected = gen_bar_scenarios.render(SCENARIOS)
+    assert gen_bar_scenarios.HEADER_PATH.read_text() == expected, "run tests/gen_bar_scenarios.py"

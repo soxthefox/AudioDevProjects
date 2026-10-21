@@ -6,10 +6,10 @@ BIN := $(VENV)/bin
 PIO := $(BIN)/pio
 CLANG_FORMAT ?= $(shell command -v clang-format || xcrun --find clang-format 2>/dev/null)
 
-FIRMWARE_PROJECTS := firmware/gateway
+FIRMWARE_PROJECTS := firmware/gateway firmware/bar
 # Generated files are excluded from formatting.
 C_SOURCES := $(shell find protocol firmware -name '*.[ch]' -o -name '*.cpp' -o -name '*.hpp' \
-	| grep -v -e '/\.pio/' -e 'golden_vectors.h')
+	| grep -v -e '/\.pio/' -e 'golden_vectors.h' -e 'bar_scenarios.h')
 
 .PHONY: help venv sim test lint format py-test native-test firmware-build vectors clean
 
@@ -18,7 +18,7 @@ help:
 	@echo "make test            lint + Python tests + PlatformIO native tests + firmware builds"
 	@echo "make lint            ruff + clang-format checks"
 	@echo "make format          apply ruff format and clang-format"
-	@echo "make vectors         regenerate protocol/vectors/golden_vectors.h"
+	@echo "make vectors         regenerate the generated C test headers"
 
 $(BIN)/python:
 	@test -n "$(PYTHON_FOR_VENV)" || (echo "need Python 3.11+ (python3.11 ... python3.14) on PATH" && exit 1)
@@ -63,6 +63,7 @@ firmware-build: venv
 
 vectors: venv
 	$(BIN)/python protocol/vectors/gen_c_vectors.py
+	$(BIN)/python tests/gen_bar_scenarios.py
 
 clean:
 	rm -rf $(VENV) $(addsuffix /.pio,$(FIRMWARE_PROJECTS))

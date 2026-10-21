@@ -121,3 +121,19 @@ ESP-NOW reports delivery asynchronously. The transport waits on a semaphore for 
 ## D30. The Transport interface also reports link counters
 
 The gateway's STATS needs serial `rx_packets` and `crc_errors`, which only the serial framing layer knows. `Transport::counters()` exposes them for every link type, so gateway logic depends only on the interface.
+
+## D31. Bar: cap applied in our code, FastLED's power limiter as the second guard
+
+`BarLogic::render` produces final pixel values (`value × cap × fade / 255²`, integer maths), and FastLED's global brightness stays at 255. This keeps the cap in tested, portable code, and identical to the simulator. `FastLED.setMaxPowerInVoltsAndMilliamps(5, 3000)` runs underneath as the independent current limit. FastLED is pinned to 3.9.4. The strip is only re-sent when the pixels actually change.
+
+## D32. Unassigned bars breathe on a triangle wave
+
+The plan asks for "slow white breathing at low brightness". A triangle wave (0 → 24 → 0 over 4 s, then capped) keeps the maths integer, so firmware and simulator match exactly; a sine would need floats and could differ by one step. A stored ID above 16 (corrupt NVS) boots as unassigned.
+
+## D33. The firmware's bar tests replay the simulator's scenarios
+
+`tests/gen_bar_scenarios.py` turns `tests/bar_scenarios.json` into `firmware/bar/test/test_bar/bar_scenarios.h`, encoding messages with the Python codec (already pinned by the golden vectors). The same 13 scenarios pass on `VirtualBar` (Python) and `BarLogic` (C++). A Python test fails if the header is stale. Firmware-only behaviour (ID saved to and loaded from storage, `millis()` wrap-around, HELLO sent by `loop()`) has its own native tests.
+
+## D34. Swapping the bar to a wired link is a change to `main.cpp` only
+
+`BarLogic` takes a `Transport&`. A wired bar would construct `SerialTransport` over an `ArduinoStream` on a UART instead of `EspNowTransport`; CONFIG_MAC still works because MACs travel inside packets (D6).

@@ -34,8 +34,6 @@ def esp32_flags(project: str) -> dict[str, str]:
 
 @pytest.mark.parametrize("project", sorted(REQUIRED))
 def test_firmware_flags_match_installation(project: str) -> None:
-    if not (FIRMWARE / project / "platformio.ini").exists():
-        pytest.skip(f"{project} firmware not written yet")
     installation = load_installation()
     known = {f.name for f in fields(Installation)}
     flags = esp32_flags(project)
