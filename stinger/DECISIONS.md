@@ -53,3 +53,23 @@ BRIGHTNESS_CAP takes 0–255 (a scale applied to every channel). Each bar applie
 ## D13. The C codec's tests live in the gateway project's native environment
 
 The handover puts native tests under each PlatformIO project. The gateway is the main parser of serial input, so `firmware/gateway/test/test_protocol` holds the golden-vector, round-trip and bit-flip tests for the C codec. The protocol folder is a PlatformIO library (`protocol/library.json`) that both firmware projects link via `symlink://`.
+
+## D14. Hardware and timing facts live in `config/installation.yaml`
+
+The laptop side reads one YAML file for bar count, LEDs per bar, fps, baud, brightness hard limit and protocol timings. The firmware gets the same values as build flags; a test checks the two agree, so there is one documented number per fact and no copy can drift silently.
+
+## D15. Simulator: virtual gateway over TCP, with the serial line speed simulated
+
+The virtual gateway listens on TCP (default port 7777) and speaks the exact serial wire format, so the bridge's `--out sim:HOST:PORT` differs from `--out serial:DEVICE` only in the transport. The simulator holds each incoming serial frame until a real 8N1 line at the configured baud would have delivered it, so the view's latency and fps show the real link budget: one 10-bar frame at 921600 baud takes about 20.6 ms of the 25 ms frame. `--baud 0` turns this off. A new TCP client replaces the old one, as if the bridge had reopened the port.
+
+## D16. Bar behaviour is pinned by shared scenarios, not by sharing code
+
+The simulator's virtual bar is a Python port of the firmware's bar logic, with all-integer maths so both produce identical pixels. `tests/bar_scenarios.json` (filtering, latch on SHOW, cap, failsafe timing, breathing, ID assignment, HELLO timing) runs against the virtual bar now and against the firmware's native tests in M5. Sharing the C code via a compiled extension was rejected because it would make the client preview depend on a C toolchain.
+
+## D17. Unplugged bars stay in the bridge's list, marked OFFLINE
+
+"Removes it from the bridge's list" is implemented as moving it out of the online set: the operator still sees which bar dropped and for how long. Code that sends frames uses only the online set. "Unplug" in the simulator cuts the bar's power, so replugging reboots it: the ID survives (as in NVS), the runtime brightness cap and failsafe timeout reset, and it sends HELLO at once.
+
+## D18. Simulator view metrics
+
+Per bar: fps is SHOWs latched with a new FRAME in the last second; dropped counts SHOWs missed (frame_seq gaps up to 100; larger jumps are a resync) plus SHOWs that arrived without this bar's FRAME. Latency is one figure for the whole frame: from the first serial byte of a frame reaching the gateway to the SHOW latch, averaged over the last 40 frames.
