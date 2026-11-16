@@ -1,0 +1,8 @@
+{
+  "name": "stinger_common",
+  "version": "1.0.0",
+  "description": "Transport interface and implementations shared by the gateway and bar firmware",
+  "frameworks": "*",
+  "platforms": "*",
+  "dependencies": [{ "name": "stinger_proto" }]
+}

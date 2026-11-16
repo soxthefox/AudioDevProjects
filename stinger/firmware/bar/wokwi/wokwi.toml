@@ -1,0 +1,5 @@
+# One bar (firmware/bar, env:wokwi) with a 60-LED strip. Run with: make wokwi
+[wokwi]
+version = 1
+firmware = '../.pio/build/wokwi/firmware.bin'
+elf = '../.pio/build/wokwi/firmware.elf'

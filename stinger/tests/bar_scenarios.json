@@ -1,0 +1,549 @@
+{
+ "comment": "Bar behaviour scenarios (PROTOCOL.md section 6). Run against the simulator's VirtualBar (tests/test_sim_bar.py) and the firmware's BarLogic (firmware/bar/test). Messages use the vectors.json message format. 'expect' is the R G B output after cap and failsafe; 'expect_hello' is the bar_id of the HELLO due at that time, or null for none.",
+ "settings": {
+  "led_count": 4,
+  "hard_limit": 178,
+  "failsafe_timeout_ms": 2000,
+  "failsafe_fade_ms": 500,
+  "hello_interval_ms": 1000,
+  "fw_version": 256
+ },
+ "scenarios": [
+  {
+   "name": "ignores_frames_for_other_ids",
+   "doc": "A FRAME for another ID never reaches the LEDs.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 4,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 1,
+     "expect": "000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "name": "latches_only_on_show",
+   "doc": "Pixels change on SHOW, not on FRAME. Full white is scaled to the 178 hard limit.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 1,
+     "expect": "000000000000000000000000"
+    },
+    {
+     "at": 2,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 3,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+   ]
+  },
+  {
+   "name": "show_without_new_frame_keeps_last",
+   "doc": "Latest frame wins: a SHOW with no new FRAME keeps the current pixels.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 10,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 2
+     }
+    },
+    {
+     "at": 11,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+   ]
+  },
+  {
+   "name": "brightness_cap_scales_and_clamps",
+   "doc": "Output = value * cap / 255. A CONFIG can lower the cap, never raise it above the hard limit.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "646464646464646464646464"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 1,
+     "expect": "454545454545454545454545"
+    },
+    {
+     "at": 2,
+     "send": {
+      "type": "CONFIG",
+      "seq": 3,
+      "bar_id": 3,
+      "key": "BRIGHTNESS_CAP",
+      "value": 128
+     }
+    },
+    {
+     "at": 3,
+     "expect": "323232323232323232323232"
+    },
+    {
+     "at": 4,
+     "send": {
+      "type": "CONFIG",
+      "seq": 3,
+      "bar_id": 255,
+      "key": "BRIGHTNESS_CAP",
+      "value": 255
+     }
+    },
+    {
+     "at": 5,
+     "expect": "454545454545454545454545"
+    }
+   ]
+  },
+  {
+   "name": "short_frame_pads_black_long_frame_truncates",
+   "doc": "Missing pixels are black; extra pixels are ignored.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 1,
+     "expect": "b2b2b2b2b2b2000000000000"
+    },
+    {
+     "at": 2,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "010101020202030303040404ffffffffffff"
+     }
+    },
+    {
+     "at": 2,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 3,
+     "expect": "000000010101020202020202"
+    }
+   ]
+  },
+  {
+   "name": "failsafe_fades_then_recovers",
+   "doc": "2 s without a FRAME, then a linear fade to black over 500 ms; the next frame restores output.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 2000,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    },
+    {
+     "at": 2250,
+     "expect": "595959595959595959595959"
+    },
+    {
+     "at": 2500,
+     "expect": "000000000000000000000000"
+    },
+    {
+     "at": 4000,
+     "expect": "000000000000000000000000"
+    },
+    {
+     "at": 4000,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 4000,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 4001,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+   ]
+  },
+  {
+   "name": "failsafe_timeout_config_has_a_floor",
+   "doc": "FAILSAFE_TIMEOUT_MS is clamped to at least 100 ms.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "CONFIG",
+      "seq": 3,
+      "bar_id": 3,
+      "key": "FAILSAFE_TIMEOUT_MS",
+      "value": 50
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 100,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    },
+    {
+     "at": 350,
+     "expect": "595959595959595959595959"
+    }
+   ]
+  },
+  {
+   "name": "never_received_a_frame_is_black",
+   "doc": "An assigned bar that has had no frame since boot stays dark.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 5,
+     "expect": "000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "name": "unassigned_bar_breathes_and_ignores_frames",
+   "doc": "ID 0: dim white triangle wave (peak 24, 4 s period, then capped); FRAMEs are ignored.",
+   "bar_id": 0,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "expect": "000000000000000000000000"
+    },
+    {
+     "at": 1000,
+     "expect": "080808080808080808080808"
+    },
+    {
+     "at": 2000,
+     "expect": "101010101010101010101010"
+    },
+    {
+     "at": 3000,
+     "expect": "080808080808080808080808"
+    },
+    {
+     "at": 3000,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 1,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 3000,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 4000,
+     "expect": "000000000000000000000000"
+    }
+   ]
+  },
+  {
+   "name": "assign_id_by_mac_takes_effect_at_once",
+   "doc": "CONFIG_MAC for another MAC is ignored; for ours it sets the ID and triggers an immediate HELLO.",
+   "bar_id": 0,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "expect_hello": 0
+    },
+    {
+     "at": 10,
+     "send": {
+      "type": "CONFIG_MAC",
+      "seq": 4,
+      "mac": "02:53:54:00:00:09",
+      "key": "ASSIGN_ID",
+      "value": 7
+     }
+    },
+    {
+     "at": 11,
+     "expect_hello": null
+    },
+    {
+     "at": 20,
+     "send": {
+      "type": "CONFIG_MAC",
+      "seq": 4,
+      "mac": "02:53:54:00:00:03",
+      "key": "ASSIGN_ID",
+      "value": 5
+     }
+    },
+    {
+     "at": 21,
+     "expect_hello": 5
+    },
+    {
+     "at": 30,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 5,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 30,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 31,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+   ]
+  },
+  {
+   "name": "assign_id_broadcast_mac_and_out_of_range",
+   "doc": "IDs above 16 are ignored; the all-FF MAC reaches every bar.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "CONFIG_MAC",
+      "seq": 4,
+      "mac": "ff:ff:ff:ff:ff:ff",
+      "key": "ASSIGN_ID",
+      "value": 17
+     }
+    },
+    {
+     "at": 0,
+     "expect_hello": 3
+    },
+    {
+     "at": 1,
+     "send": {
+      "type": "CONFIG_MAC",
+      "seq": 4,
+      "mac": "ff:ff:ff:ff:ff:ff",
+      "key": "ASSIGN_ID",
+      "value": 6
+     }
+    },
+    {
+     "at": 2,
+     "expect_hello": 6
+    }
+   ]
+  },
+  {
+   "name": "config_for_other_bar_is_ignored",
+   "doc": "CONFIG applies only to its bar_id or 0xFF.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "send": {
+      "type": "FRAME",
+      "seq": 1,
+      "bar_id": 3,
+      "rgb": "ffffffffffffffffffffffff"
+     }
+    },
+    {
+     "at": 0,
+     "send": {
+      "type": "SHOW",
+      "seq": 2,
+      "frame_seq": 1
+     }
+    },
+    {
+     "at": 1,
+     "send": {
+      "type": "CONFIG",
+      "seq": 3,
+      "bar_id": 4,
+      "key": "BRIGHTNESS_CAP",
+      "value": 0
+     }
+    },
+    {
+     "at": 2,
+     "expect": "b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+   ]
+  },
+  {
+   "name": "hello_every_interval",
+   "doc": "HELLO is due at boot and then every hello_interval_ms.",
+   "bar_id": 3,
+   "mac": "02:53:54:00:00:03",
+   "steps": [
+    {
+     "at": 0,
+     "expect_hello": 3
+    },
+    {
+     "at": 500,
+     "expect_hello": null
+    },
+    {
+     "at": 999,
+     "expect_hello": null
+    },
+    {
+     "at": 1000,
+     "expect_hello": 3
+    },
+    {
+     "at": 1500,
+     "expect_hello": null
+    },
+    {
+     "at": 2000,
+     "expect_hello": 3
+    }
+   ]
+  }
+ ]
+}

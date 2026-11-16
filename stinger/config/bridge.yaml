@@ -1,0 +1,15 @@
+# Which DMX universe and channels feed each bar (HANDOVER.md section 6.3).
+# Default: one universe per bar. Art-Net universe 0 -> bar 1 ... universe 9 -> bar 10.
+# sACN has no universe 0, so sACN universe 1 -> bar 1 ... universe 10 -> bar 10.
+# Each bar reads leds_per_bar x 3 channels (R G B per pixel) from start_channel.
+
+artnet_universe_base: 0
+sacn_universe_base: 1
+start_channel: 1
+
+# Per-bar overrides; any key may be left out.
+overrides: {}
+#   3:
+#     artnet_universe: 12
+#     sacn_universe: 13
+#     start_channel: 1
